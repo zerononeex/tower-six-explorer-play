@@ -1,15 +1,64 @@
 // All site data. Facts: docs/blueprint-tower-six.md §1. Prices: §8 (see SOURCES.md).
 
-// Floor bands, calibrated in source pixels of assets/17-tower-west-elevation.jpg (750×540).
-// The view is cropped to x 300–680; the canvas extends 29px below the photo because the
-// lower podium floors are out of frame. Floor 39 = roof crown (y 4), floor 5 sits on the
-// podium roof (y 512); measured slab pitch ≈ 14.5px.
+// Tower explorer calibration, in source pixels of assets/18-tower-six-hero.jpg (2084×2040).
+// Floors are drawn on the tower's FRONT-LEFT face, which reads as two planes split at x = joinX:
+// the main shaft (joinX → cornerX, the sharp slab corner) and the left wing, which becomes the
+// white terraced block on the lower tower. `slabs[k]` is one slab-EDGE line (the slab's bright
+// front lip), measured individually at both ends of each plane:
+//   [y at cornerX, y at joinX on the shaft, y at joinX on the wing, y at wingX on the wing]
+// k = 39 − floor: floor n spans slab k = 39 − n (its ceiling) down to k = 40 − n (its floor).
+// k 0 is the mechanical cap's base line (shaft) / the wing roof's fascia; k 35 is the podium roof
+// under floor 5; k 36–37 are the rental levels' slabs; k 38–39 split the double-height podium
+// levels 1–2 down to grade.
 export const TOWER = {
-  imgW: 750, imgH: 540, cropX: 300, cropW: 380, canvasH: 569,
-  shaftTop: 4, podiumTop: 512,
-  right: 645, podiumLeft: 322, podiumRight: 660,
-  // cascading terraces: [band top y ≥, left edge x]
-  steps: [[0, 437], [358, 418], [383, 397], [405, 375], [428, 358], [448, 340], [475, 325]],
+  src: 'assets/18-tower-six-hero.jpg', w: 2084, h: 2040,
+  view: [1000, 250, 900, 1700], // displayed crop (viewBox), still in the image's pixel space
+  cornerX: 1650, joinX: 1478, wingX: 1348, podiumRightX: 1800,
+  slabs: [
+    [359, 426, 448.7, 492], // k 0
+    [423, 488.9, 493, 539.7], // k 1
+    [458.9, 521.8, 526.9, 571.4], // k 2
+    [495.4, 555.5, 561, 602.6], // k 3
+    [531.8, 589.1, 594.6, 633.7], // k 4
+    [568.3, 622.7, 627.2, 665.2], // k 5
+    [604.8, 656.4, 661, 695.7], // k 6
+    [641.3, 689.4, 693.1, 727.3], // k 7
+    [677.2, 723.1, 726, 758.1], // k 8
+    [713.2, 756.3, 759.5, 789.3], // k 9
+    [749.8, 789.3, 793.2, 819.9], // k 10
+    [786.3, 822.9, 826.8, 850.6], // k 11
+    [822.3, 856.1, 859.9, 881.2], // k 12
+    [858.4, 888.1, 892, 912.2], // k 13
+    [894.4, 921.2, 925.1, 943], // k 14
+    [929.6, 955.8, 958.1, 973.8], // k 15
+    [965.7, 988.3, 991.2, 1003.8], // k 16
+    [1001.7, 1020.8, 1024.2, 1034.6], // k 17
+    [1039.1, 1054.8, 1057.9, 1065.4], // k 18
+    [1076.2, 1089.5, 1092, 1096.4], // k 19
+    [1111.3, 1123.3, 1125.4, 1128.1], // k 20
+    [1147.6, 1156, 1157.3, 1158], // k 21
+    [1183.8, 1187.9, 1190.7, 1189.1], // k 22
+    [1220.9, 1221.4, 1222.7, 1219.3], // k 23
+    [1255.2, 1253.7, 1258.4, 1251.2], // k 24
+    [1290.6, 1287.1, 1290.7, 1282.4], // k 25
+    [1326.3, 1320.9, 1324, 1313.7], // k 26
+    [1364.4, 1353.7, 1358, 1345.2], // k 27
+    [1399.1, 1386.8, 1391, 1376.6], // k 28
+    [1434.9, 1419.8, 1425.4, 1408.6], // k 29
+    [1470.6, 1452.2, 1458.3, 1440], // k 30
+    [1506.3, 1486.9, 1492.6, 1472.6], // k 31
+    [1542, 1518.5, 1525.9, 1503.4], // k 32
+    [1577.8, 1551.6, 1559.8, 1536.4], // k 33
+    [1613.3, 1583.1, 1594.3, 1568.8], // k 34
+    [1648.9, 1617.3, 1628.5, 1601.4], // k 35
+    [1684.4, 1650, 1662.1, 1634.3], // k 36
+    [1719.8, 1682.9, 1696.3, 1666.7], // k 37
+    [1788, 1749, 1763, 1737], // k 38
+    [1857, 1817.4, 1831.4, 1805.4], // k 39
+  ],
+  // left silhouette per floor range [from, to, x]: the wing edge, then the terrace steps (each
+  // terrace is the roof of the two floors below it), then the podium
+  leftEdge: [[1, 2, 1072], [3, 4, 1088], [5, 6, 1117], [7, 8, 1162], [9, 10, 1200], [11, 12, 1247], [13, 14, 1300], [15, 39, 1348]],
 };
 
 export const ZONES = [

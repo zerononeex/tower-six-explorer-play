@@ -36,12 +36,16 @@
     <ol id="floor-list" class="floor-list" aria-label="All floors"></ol>
   </div>
 
-  <figure class="elevation" aria-label="Tower Six west elevation with selectable floors">
-    <div id="bands" class="bands">
-      <img src="assets/17-tower-west-elevation.jpg" alt="Tower Six, west elevation rendering" id="elev-img">
-      <span class="below-frame">Podium continues below frame</span>
+  <figure class="tower-fig">
+    <div class="tower-wrap">
+      <svg id="tower-svg" class="tower-svg" role="group" aria-label="Tower Six rendering with selectable floors">
+        <image id="tower-img" role="img" aria-label="Tower Six, official hero rendering: full tower, cascading terraces and podium"></image>
+        <g id="floors"></g>
+      </svg>
+      <span id="floor-chip" class="floor-chip" hidden></span>
+      <div class="scrub-rail" aria-hidden="true"></div><span id="scrub-thumb" class="scrub-thumb" aria-hidden="true" hidden></span>
     </div>
-    <figcaption>Hover or tap a floor. Floors 1–4 are the podium.</figcaption>
+    <figcaption>Tap a floor, or drag up and down on the tower to move through floors. Floors 1–4 are the podium.</figcaption>
   </figure>
 
   <aside id="floor-panel" class="floor-panel" aria-live="polite">

@@ -38,5 +38,7 @@ The published per-family counts, if summed, exceed the developer's stated total 
 ## Other sources
 
 - Facts, renders and the amenity plan: homes.theamazingbrentwood.com (home, /homes, /amenities, /penthouse, /masterplan).
-- `assets/17-tower-west-elevation.jpg`: third-party copy via vancouverpresale.vip (per blueprint §4).
+- `assets/17-tower-west-elevation.jpg`: third-party copy via vancouverpresale.vip (per blueprint §4). No longer the explorer base (replaced by asset 18, 2026-11-05); file kept for reference.
 - 3D plans: no Tower Six floor-plan diagram was fetched during the build, so both models are representative layouts built from published type, size, ceiling height and features.
+
+- `assets/18-tower-six-hero.jpg` — Tower Six hero rendering (full tower, terraces, podium; "TOWER SIX" vertical label). SHAPE official Tower Six site, homes.theamazingbrentwood.com (tab6_hero@2x, 2084×2040), accessed 2026-11-04. Intended as the Tower Explorer base image (owner choice, 2026-11-04); replaces the low-res west elevation (asset 17) for calibration.
