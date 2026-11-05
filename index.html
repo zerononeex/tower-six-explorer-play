@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tower Six — The Amazing Brentwood (concept prototype)</title>
+<meta name="description" content="Unofficial concept prototype: explore Tower Six floor by floor, plans in 3D, amenities and sourced pricing.">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#tower">TOWER <b>SIX</b></a>
+  <nav>
+    <a href="#tower">Tower</a><a href="#plans">Plans</a><a href="#homes">Homes</a><a href="#penthouse">Penthouse</a><a href="#amenities">Amenities</a><a href="#masterplan">Master plan</a><a href="#pricing">Pricing</a><a href="#register">Register</a>
+  </nav>
+</header>
+
+<main>
+<section id="tower" class="explorer">
+  <div class="intro">
+    <p class="eyebrow">The Amazing Brentwood · Neighbourhood Two, Burnaby</p>
+    <h1>Tower Six</h1>
+    <p class="lede">39 storeys. Cascading terraces. 270° views. Pick a floor to see what lives there.</p>
+    <div class="stepper" aria-label="Floor stepper">
+      <button type="button" id="floor-down" aria-label="Floor down">−</button>
+      <output id="floor-num" aria-live="polite">–</output>
+      <button type="button" id="floor-up" aria-label="Floor up">+</button>
+    </div>
+    <ol id="floor-list" class="floor-list" aria-label="All floors"></ol>
+  </div>
+
+  <figure class="elevation" aria-label="Tower Six west elevation with selectable floors">
+    <div id="bands" class="bands">
+      <img src="assets/17-tower-west-elevation.jpg" alt="Tower Six, west elevation rendering" id="elev-img">
+      <span class="below-frame">Podium continues below frame</span>
+    </div>
+    <figcaption>Hover or tap a floor. Floors 1–4 are the podium.</figcaption>
+  </figure>
+
+  <aside id="floor-panel" class="floor-panel" aria-live="polite">
+    <p class="muted">Select a floor on the tower, with the − / + stepper, or from the floor list.</p>
+  </aside>
+</section>
+
+<section class="stats" style="--bg:url(assets/01-hero-tower.jpg)">
+  <ul>
+    <li><b>39</b> storeys</li>
+    <li><b>369</b> homes<small>condominiums, plus 53 affordable homes and 21 market rentals in the building</small></li>
+    <li><b>18,000 SF</b> amenities</li>
+    <li><b>2028</b> Estimated completion</li>
+  </ul>
+</section>
+
+<section id="plans" class="block">
+  <h2>Plan finder</h2>
+  <p class="muted">Published plan mix — 369 homes across 11 plan families.</p>
+  <div class="chips" id="plan-chips" role="group" aria-label="Filter by bedrooms">
+    <button type="button" data-beds="all" aria-pressed="true">All</button>
+    <button type="button" data-beds="0" aria-pressed="false">Studio</button>
+    <button type="button" data-beds="1" aria-pressed="false">1 Bed</button>
+    <button type="button" data-beds="2" aria-pressed="false">2 Bed</button>
+    <button type="button" data-beds="3" aria-pressed="false">3 Bed</button>
+    <button type="button" data-beds="ph" aria-pressed="false">Penthouse</button>
+  </div>
+  <div id="plan-cards" class="cards"></div>
+  <p class="footnote">Per-family home counts are as published in public presale databases. Tower Six has 369 condominium homes in total, including the 4 Penthouse Collection homes.</p>
+  <p class="footnote">Prices from published third-party presale databases — see <a href="#sources">Sources</a>. Subject to change without notice. This is not an offering for sale; verify current pricing with the developer's authorized sales representatives.</p>
+</section>
+
+<section id="homes" class="block">
+  <h2>Inside the homes</h2>
+  <img class="wide" src="assets/03-homepage-homes.jpg" alt="Tower Six home interior rendering" loading="lazy">
+  <div class="split">
+    <div class="tabs" data-tabs>
+      <h3>Two colour schemes</h3>
+      <div class="chips" role="group" aria-label="Colour scheme">
+        <button type="button" data-for="0" aria-pressed="true">Classic Grey</button>
+        <button type="button" data-for="1" aria-pressed="false">Timeless White</button>
+      </div>
+      <div class="fade">
+        <img data-tab="0" class="on" src="assets/09-scheme-classic-grey.jpg" alt="Classic Grey colour scheme" loading="lazy">
+        <img data-tab="1" src="assets/10-scheme-timeless-white.jpg" alt="Timeless White colour scheme" loading="lazy">
+      </div>
+    </div>
+    <div class="tabs" data-tabs>
+      <h3>Kitchens</h3>
+      <img src="assets/08-kitchen-new.jpg" alt="Tower Six kitchen rendering" loading="lazy">
+      <div class="chips" role="group" aria-label="Kitchen format">
+        <button type="button" data-for="0" aria-pressed="true">Linear + Island</button>
+        <button type="button" data-for="1" aria-pressed="false">L-Shaped + Island</button>
+      </div>
+      <p data-tab="0" class="on">8'6" or 9'6" islands, seating up to 7.</p>
+      <p data-tab="1">6'6" island with a 12" sliding pantry.</p>
+    </div>
+    <div>
+      <h3>Bath &amp; laundry</h3>
+      <img src="assets/11-bathroom.jpg" alt="Side-by-side Miele washer and dryer with built-in storage" loading="lazy">
+      <p class="muted">Pictured: side-by-side laundry with built-in storage. Bathrooms feature Kohler + TOTO fixtures, soaker tub, frameless glass showers and Nuheat in-floor heat (main/ensuite).</p>
+    </div>
+  </div>
+  <ul class="features">
+    <li>9'0" ceilings</li><li>Miele appliance package</li><li>Kohler + TOTO bathroom fixtures</li><li>Nuheat in-floor heating</li>
+    <li>Central A/C</li><li>Smart thermostats</li><li>Wireless key entry</li><li>Side-by-side washer/dryer</li>
+  </ul>
+</section>
+
+<section id="penthouse" class="block dark">
+  <p class="eyebrow">Penthouse Collection</p>
+  <h2>Only four homes</h2>
+  <div class="tabs" data-tabs>
+    <div class="chips" role="group" aria-label="Penthouse rooms">
+      <button type="button" data-for="0" aria-pressed="true">Balcony</button>
+      <button type="button" data-for="1" aria-pressed="false">Living</button>
+      <button type="button" data-for="2" aria-pressed="false">Kitchen</button>
+      <button type="button" data-for="3" aria-pressed="false">Ensuite</button>
+    </div>
+    <div class="fade pano">
+      <img data-tab="0" class="on" src="assets/15-ph-balcony.jpg" alt="Penthouse balcony" loading="lazy">
+      <img data-tab="1" src="assets/12-ph-living.jpg" alt="Penthouse living room" loading="lazy">
+      <img data-tab="2" src="assets/13-ph-kitchen.jpg" alt="Penthouse kitchen" loading="lazy">
+      <img data-tab="3" src="assets/14-ph-ensuite.jpg" alt="Penthouse ensuite" loading="lazy">
+    </div>
+  </div>
+  <ul class="features">
+    <li>11'7" ceilings in main living areas</li><li>Gas fireplace + sliding TV panel</li><li>European brushed-oak floors</li><li>Thermador 18" wine cooler</li>
+    <li>Miele combi-steam + pot filler</li><li>Gated private garages</li><li>Full-time concierge</li>
+  </ul>
+  <p><button type="button" class="btn" data-plan="ph1">Open PH1 in 3D</button></p>
+</section>
+
+<section id="amenities" class="block" style="--bg:url(assets/04-outdoor-amenity-terrace.jpg)">
+  <h2>18,000 SF of amenities</h2>
+  <p class="muted">The Level 5 amenity floor — the developer's own bird's-eye plan, 18 numbered spaces.</p>
+  <div class="amenity">
+    <div class="hotspots" id="hotspots">
+      <img src="assets/05-amenity-floor-birdseye.jpg" alt="Bird's-eye plan of the amenity floor" loading="lazy">
+    </div>
+    <div>
+      <div id="amenity-card" class="card" aria-live="polite"><p class="muted">Tap a number on the plan or in the list.</p></div>
+      <ol id="amenity-list" class="amenity-list"></ol>
+    </div>
+  </div>
+</section>
+
+<section id="masterplan" class="block">
+  <h2>Master plan</h2>
+  <div class="split two">
+    <img class="siteplan" src="assets/16-masterplan-siteplan.png" alt="The Amazing Brentwood site plan" width="785" height="681" loading="lazy">
+    <ul class="facts">
+      <li><b>28</b> acres</li><li><b>11</b> towers</li><li><b>6,000+</b> homes</li><li><b>200+</b> shops</li>
+      <li><b>1-acre</b> plaza</li><li><b>On site</b> Brentwood Town Centre SkyTrain</li><li><b>~26 min</b> to downtown</li>
+    </ul>
+  </div>
+</section>
+
+<section id="pricing" class="block">
+  <h2>Pricing &amp; incentives</h2>
+  <p class="muted">SHAPE's own site publishes no prices. Every figure below is a dated snapshot from a third-party presale database — <a href="#sources">where these numbers come from</a>.</p>
+  <div class="cards">
+    <div class="card"><h3>Starting from $665,000</h3><small>presalehomes.ca, as of Nov 2026</small></div>
+    <div class="card"><h3>From $649,000 (LNY price)</h3><small>mikestewart.ca, updated Oct 7, 2026</small></div>
+    <div class="card"><h3>$50,000 off all homes</h3><small>Limited-time incentive · mikestewart.ca, Sep/Oct 2026</small></div>
+    <div class="card"><h3>8% total deposit</h3><small>Paid in stages to 2028 · presalehomes.ca citing Presale Properties, Oct 2026</small></div>
+  </div>
+  <p class="footnote">Prices from published third-party presale databases — see <a href="#sources">Sources</a>. Subject to change without notice. This is not an offering for sale; verify current pricing with the developer's authorized sales representatives.</p>
+</section>
+
+<section id="sources" class="block">
+  <h2>Sources</h2>
+  <p class="muted">Pricing source reference table, accessed 2026-11-03. Full URLs in SOURCES.md.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Figure</th><th>Source</th><th>Date on source</th></tr></thead>
+    <tbody>
+      <tr><td>From $649,000 ("LNY Price")</td><td>mikestewart.ca</td><td>Updated Oct 7, 2026</td></tr>
+      <tr><td>From $665,000</td><td>presalehomes.ca</td><td>As of November 2026 (first recorded Oct 26, 2026)</td></tr>
+      <tr><td>From $689,000 — conflicts with the same page's $649,000</td><td>mikestewart.ca (page pricing footer)</td><td>Undated section; page updated Oct 7, 2026</td></tr>
+      <tr><td>Range $680,000–$1,430,000</td><td>livabl.com</td><td>Page last updated ~Jul 2026</td></tr>
+      <tr><td>Studio $649,000 · 1 Bed $758,000 · 2 Bed $759,000–$1,161,000 · 3 Bed $1,335,000</td><td>mikestewart.ca price grid; identical grid on vancouvernewcondos.com</td><td>Feb 2026 (vancouvernewcondos.com updated Feb 5, 2026)</td></tr>
+      <tr><td>Studio $650,000 (465 SF) · 1 Bed $713,000 (457 SF) · 2Bd/2Ba $994,000 (890 SF) · Jr 2Bd from $760,000 (636 SF) · 3 Bed $1,305,000 (1,067 SF) · Penthouse $2,379,000 (1,417 SF)</td><td>mikestewart.ca price grid, stated as extracted from developer communications</td><td>Oct 2025</td></tr>
+      <tr><td>Incentive prices: 1 Bed $713,000 / $750,000 · Jr 2Bd $762,000–$854,500 · 2Bd $994,000 / $1,038,000 · 3 Bed $1,305,000 · Penthouse $2,379,000</td><td>mikestewart.ca (a "2 Bed + Den $1,068,000" line is Tower 5 — excluded)</td><td>Nov 2025</td></tr>
+      <tr><td>Unit #1809, 2Bd/2Ba, 737 SF: $828,000 (was $843,000)</td><td>mikestewart.ca price grid</td><td>Dec 2025</td></tr>
+      <tr><td>Incentive: $50,000 off all homes (limited-time)</td><td>mikestewart.ca</td><td>Sep 2026 program; page updated Oct 7, 2026</td></tr>
+      <tr><td>Deposit: 8% total, paid in stages until 2028</td><td>presalehomes.ca, citing Presale Properties</td><td>Oct 2026 offer</td></tr>
+      <tr><td>Deposit (earlier promo): 5% total standard homes; 10% total penthouse homes &amp; non-resident buyers</td><td>mikestewart.ca</td><td>Feb 2026 (Lunar New Year) program</td></tr>
+      <tr><td>Unit incentives: $18,000–$38,000 off specific units (#2902, #1505, #502, #2911, #3203, #2402) + free lockers / EV stalls on some</td><td>mikestewart.ca; vancouvernewcondos.com</td><td>Feb 2026</td></tr>
+      <tr><td>Assignment fee: 1%</td><td>presalehomes.ca, citing Presale Properties</td><td>Checked Oct 2026</td></tr>
+      <tr><td>Strata fee (indicative): $0.63 / SF — weakest source in this table</td><td>jeyhoonmohammadi.com (MLS-derived)</td><td>Accessed Nov 2026</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="footnote">Prices from published third-party presale databases — see Sources. Subject to change without notice. This is not an offering for sale; verify current pricing with the developer's authorized sales representatives.</p>
+</section>
+
+<section id="register" class="block">
+  <h2>Register</h2>
+  <div class="split two">
+    <form id="register-form" class="form">
+      <p class="demo-note">Demo form — it submits nowhere and stores nothing.</p>
+      <label>Name<input name="name" autocomplete="name" required></label>
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Phone<input name="phone" type="tel" autocomplete="tel"></label>
+      <label>Postal code<input name="postal" autocomplete="postal-code"></label>
+      <fieldset><legend>Interested in the Penthouse Collection?</legend>
+        <label class="inline"><input type="radio" name="ph" value="yes"> Yes</label><label class="inline"><input type="radio" name="ph" value="no" checked> No</label></fieldset>
+      <fieldset><legend>Are you a realtor?</legend>
+        <label class="inline"><input type="radio" name="realtor" value="yes"> Yes</label><label class="inline"><input type="radio" name="realtor" value="no" checked> No</label></fieldset>
+      <button class="btn" type="submit">Register (demo)</button>
+      <p id="register-msg" class="muted" aria-live="polite"></p>
+    </form>
+    <div>
+      <h3>Pop-Up Presentation Centre</h3>
+      <p>1401–4501 Lougheed Hwy, Burnaby<br>Open Sat–Mon 12–6pm or by appointment</p>
+      <p>T <a href="tel:6045638386">604-563-8386</a><br>E <a href="mailto:info@theamazingbrentwood.com">info@theamazingbrentwood.com</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="care">
+  <h2>Homeowner Care</h2>
+  <p>2-5-10 warranty by Travelers · SHAPE Customer Care Team</p>
+</section>
+</main>
+
+<footer class="foot">
+  <p>Unofficial concept prototype built from publicly available information. Not affiliated with SHAPE Properties. This is not an offering for sale. Renderings are the developer's published marketing images, used for reference.</p>
+</footer>
+
+<dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
+  <div class="viewer-head">
+    <div>
+      <h2 id="viewer-title"></h2>
+      <p id="viewer-specs" class="muted"></p>
+      <p class="label">Representative layout — built from published plan data (type, size, features); diagram not published by the developer</p>
+    </div>
+    <div class="viewer-tools">
+      <button type="button" id="v-top">Top-down</button>
+      <button type="button" id="v-xray" aria-pressed="false">X-ray</button>
+      <button type="button" id="v-close" aria-label="Close 3D viewer">✕</button>
+    </div>
+  </div>
+  <div id="viewer-canvas" class="viewer-canvas"></div>
+  <p id="room-info" class="room-info" aria-live="polite">Drag to rotate · scroll or pinch to zoom · right-drag or two fingers to pan · click a room.</p>
+</dialog>
+
+<dialog id="lightbox" class="lightbox">
+  <img id="lb-img" alt="">
+  <p><b id="lb-title"></b> <span id="lb-note" class="muted"></span></p>
+  <button type="button" id="lb-close" aria-label="Close image">✕</button>
+</dialog>
+</body>
+</html>
