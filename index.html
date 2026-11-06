@@ -37,6 +37,9 @@
   </div>
 
   <figure class="tower-fig">
+    <div class="view-toggle" id="view-toggle" role="group" aria-label="Explorer view">
+      <button type="button" data-view="photo" aria-pressed="true">Photo</button><button type="button" data-view="3d" aria-pressed="false">3D Model</button>
+    </div>
     <div class="tower-wrap">
       <svg id="tower-svg" class="tower-svg" role="group" aria-label="Tower Six rendering with selectable floors">
         <image id="tower-img" role="img" aria-label="Tower Six, official hero rendering: full tower, cascading terraces and podium"></image>
@@ -45,7 +48,12 @@
       <span id="floor-chip" class="floor-chip" hidden></span>
       <div class="scrub-rail" aria-hidden="true"></div><span id="scrub-thumb" class="scrub-thumb" aria-hidden="true" hidden></span>
     </div>
-    <figcaption>Tap a floor, or drag up and down on the tower to move through floors. Floors 1–4 are the podium.</figcaption>
+    <div id="tower3d" class="tower3d" role="group" aria-label="Stylized 3D massing model of Tower Six with selectable floors" hidden>
+      <p id="t3d-status" class="t3d-status">Loading 3D model…</p>
+    </div>
+    <figcaption><span id="cap-photo">Tap a floor, or drag up and down on the tower to move through floors. Floors 1–4 are the podium.</span>
+      <span id="cap-3d" hidden>Drag to orbit · pinch or scroll to zoom · two fingers or right-drag to pan · tap a floor.<br>
+      Stylized 3D massing model generated from the developer's published renderings — for illustration only, not architectural drawings.</span></figcaption>
   </figure>
 
   <aside id="floor-panel" class="floor-panel" aria-live="polite">

@@ -47,6 +47,7 @@ const showChip = p => {
 };
 
 let floor = 0;
+let tower3d = null, loading3d = null; // the 3D view, created on first switch
 const zonesFor = n => ZONES.filter(z => n >= z.from && n <= z.to);
 function selectFloor(n) {
   floor = Math.min(FLOORS, Math.max(1, n));
@@ -55,6 +56,7 @@ function selectFloor(n) {
   showChip(polys[floor]);
   thumb.style.top = `${polys[floor].dataset.ry}%`;
   thumb.hidden = false;
+  tower3d?.setFloor(floor);
   const zones = zonesFor(floor);
   const fams = FAMILIES.filter(f => floor >= 34 || f.id !== 'ph');
   $('#floor-panel').innerHTML = `<h2>Floor ${floor}</h2>` + zones.map(z => `
@@ -82,12 +84,11 @@ list.addEventListener('click', e => e.target.dataset.n && selectFloor(+e.target.
 /* Tower as controller: a vertical drag (touch or mouse) or the wheel scrubs floors; a tap selects
    the floor under it, and tapping the already-selected floor scrolls to its panel. */
 const floorAt = (x, y) => document.elementsFromPoint(x, y).find(el => el.classList?.contains('floor'));
-const tapFloor = p => {
-  if (!p) return;
-  const n = +p.dataset.n;
+const tapN = n => {
   if (n === floor) $('#floor-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   else selectFloor(n);
 };
+const tapFloor = p => p && tapN(+p.dataset.n);
 // one floor per ~60% of a floor's on-screen height (a floor is ~36 image px), never under 10px
 const stepPx = () => Math.max(10, 0.6 * 36 * wrap.getBoundingClientRect().height / vh);
 let drag = null;
@@ -134,6 +135,35 @@ wrap.addEventListener('wheel', e => {
   wheelAcc -= steps * 50;
   selectFloor(cur - steps);
 }, { passive: false });
+
+/* ---------- Explorer views: Photo | 3D Model. Both views share `floor` and the side panel. ---------- */
+const wrap3d = $('#tower3d');
+async function setView(v) {
+  const is3d = v === '3d';
+  $('#view-toggle').querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+  wrap.hidden = is3d;
+  wrap3d.hidden = !is3d;
+  $('#cap-photo').hidden = is3d;
+  $('#cap-3d').hidden = !is3d;
+  if (!is3d) { tower3d?.stop(); return; }
+  try {
+    loading3d ??= import('./tower3d.js').then(m => m.createTower3D(wrap3d, {
+      T: TOWER, label, onPick: tapN,
+      amenityLabel: 'Amenities — 18 spaces', // ZONES: Level 5, "18 amenity spaces on one floor"
+      onAmenity: () => $('#amenities').scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    }));
+    tower3d = await loading3d;
+  } catch (err) {
+    loading3d = null;
+    $('#t3d-status').textContent = 'The 3D model could not load Three.js from unpkg.com — check your connection.';
+    console.warn(err);
+    return;
+  }
+  $('#t3d-status').hidden = true;
+  tower3d.setFloor(floor);
+  if (!wrap3d.hidden) tower3d.start(); // still on 3D after loading
+}
+$('#view-toggle').addEventListener('click', e => e.target.dataset.view && setView(e.target.dataset.view));
 
 $('#floor-down').onclick = () => selectFloor(floor ? floor - 1 : 1);
 $('#floor-up').onclick = () => selectFloor(floor + 1);
