@@ -1,4 +1,5 @@
 import { TOWER, ZONES, FAMILIES, AMENITIES, PLANS } from './data.js';
+import { AMENITY_FLOOR } from './amenityFloor.js';
 import { floorPolygon } from './towerGeometry.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -199,16 +200,61 @@ AMENITIES.forEach(a => {
   spots.append(spot);
   $('#amenity-list').append(h('li', {}, `<button type="button">${a.n}. ${a.name}</button>`));
 });
+// One selection shared by the Plan and 3D Model views (index into AMENITIES).
+let amenitySel = null, amenity3d, loadingA3d;
 const pickAmenity = i => {
   const a = AMENITIES[i];
+  amenitySel = i;
   [...spots.querySelectorAll('.spot')].forEach((s, j) => s.classList.toggle('sel', j === i));
   $('#amenity-card').innerHTML = `<h3>${a.n}. ${a.name}</h3><p>${a.line}</p>${a.image ? `<img src="${a.image}" alt="${a.name}">` : ''}`;
+  amenity3d?.select(i);
 };
 spots.addEventListener('click', e => e.target.classList.contains('spot') && pickAmenity(+e.target.textContent - 1));
 $('#amenity-list').addEventListener('click', e => {
   const li = e.target.closest('li');
   if (li) pickAmenity([...li.parentNode.children].indexOf(li));
 });
+// a space picked in the 3D model: select it everywhere, and open its marketing photo where one is published
+const pickAmenity3d = i => {
+  pickAmenity(i);
+  const a = AMENITIES[i];
+  if (!a.image) return;
+  $('#lb-img').src = a.image;
+  $('#lb-img').alt = a.name;
+  $('#lb-title').textContent = `${a.n}. ${a.name}`;
+  $('#lb-note').textContent = '— amenity marketing image';
+  $('#lightbox').showModal();
+};
+
+/* ---------- Amenity views: Plan | 3D Model. Both share `amenitySel`, the card and the list. ---------- */
+const a3dHost = $('#amenity3d');
+async function setAmenityView(v) {
+  const is3d = v === '3d';
+  $('#amenity-toggle').querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+  spots.hidden = is3d;
+  a3dHost.hidden = !is3d;
+  $('#a3d-cap').hidden = !is3d;
+  if (!is3d) { amenity3d?.stop(); return; }
+  try {
+    loadingA3d ??= import('./amenity3d.js').then(m => m.createAmenity3D(a3dHost, { F: AMENITY_FLOOR, spaces: AMENITIES, onPick: pickAmenity3d }));
+    amenity3d = await loadingA3d;
+  } catch (err) {
+    loadingA3d = null;
+    $('#a3d-status').textContent = 'The 3D model could not load Three.js from unpkg.com — check your connection.';
+    console.warn(err);
+    return;
+  }
+  $('#a3d-status').hidden = true;
+  amenity3d.select(amenitySel);
+  if (!a3dHost.hidden) amenity3d.start(); // still on 3D after loading
+}
+$('#amenity-toggle').addEventListener('click', e => e.target.dataset.view && setAmenityView(e.target.dataset.view));
+$('#a3d-top').onclick = e => {
+  const top = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', top);
+  e.target.textContent = top ? '3D view' : 'Top view';
+  amenity3d?.view(top);
+};
 
 /* ---------- Register (demo) ---------- */
 $('#register-form').addEventListener('submit', e => {

@@ -151,9 +151,20 @@
   <h2>18,000 SF of amenities</h2>
   <p class="muted">The Level 5 amenity floor — the developer's own bird's-eye plan, 18 numbered spaces.</p>
   <div class="amenity">
-    <div class="hotspots" id="hotspots">
-      <img src="assets/05-amenity-floor-birdseye.jpg" alt="Bird's-eye plan of the amenity floor" loading="lazy">
-    </div>
+    <figure class="amenity-stage">
+      <div class="view-toggle" id="amenity-toggle" role="group" aria-label="Amenity floor view">
+        <button type="button" data-view="plan" aria-pressed="true">Plan</button><button type="button" data-view="3d" aria-pressed="false">3D Model</button>
+      </div>
+      <div class="hotspots" id="hotspots">
+        <img src="assets/05-amenity-floor-birdseye.jpg" alt="Bird's-eye plan of the amenity floor" loading="lazy">
+      </div>
+      <div id="amenity3d" class="amenity3d" role="group" aria-label="3D model of the amenity floor with selectable spaces" hidden>
+        <p id="a3d-status" class="t3d-status">Loading 3D model…</p>
+        <button type="button" id="a3d-top" class="a3d-top" aria-pressed="false">Top view</button>
+      </div>
+      <figcaption id="a3d-cap" hidden>Drag to orbit · pinch or scroll to zoom · two fingers or right-drag to pan · tap a space.<br>
+        Stylized 3D model traced from the developer's published amenity plan — for illustration only, not architectural drawings.</figcaption>
+    </figure>
     <div>
       <div id="amenity-card" class="card" aria-live="polite"><p class="muted">Tap a number on the plan or in the list.</p></div>
       <ol id="amenity-list" class="amenity-list"></ol>

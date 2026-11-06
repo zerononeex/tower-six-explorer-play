@@ -42,3 +42,5 @@ The published per-family counts, if summed, exceed the developer's stated total 
 - 3D plans: no Tower Six floor-plan diagram was fetched during the build, so both models are representative layouts built from published type, size, ceiling height and features.
 
 - `assets/18-tower-six-hero.jpg` — Tower Six hero rendering (full tower, terraces, podium; "TOWER SIX" vertical label). SHAPE official Tower Six site, homes.theamazingbrentwood.com (tab6_hero@2x, 2084×2040), accessed 2026-11-04. Intended as the Tower Explorer base image (owner choice, 2026-11-04); replaces the low-res west elevation (asset 17) for calibration.
+
+- Amenity floor 3D model (`amenity3d.js`): geometry traced from `assets/05-amenity-floor-birdseye.jpg` (the same developer plan as the Amenity Explorer) into `amenityFloor.js`, in that image's pixels at an estimated 42 px = 1 m. Space names, numbers and photos come from `AMENITIES` in `data.js`. Only Fitness Facility has a published space photo (`assets/06-amenity-gym.jpg`); the other 17 spaces are furnished from their name/function, at the furniture footprints drawn on the plan. Stylized illustration, not architectural drawings.

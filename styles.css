@@ -111,7 +111,28 @@ button { font: inherit; cursor: pointer; }
 
 #amenities { position: relative; }
 .amenity { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+.amenity-stage { position: relative; margin: 0; align-self: start; min-width: 0; }
+.amenity-stage figcaption { font-size: .8rem; color: var(--muted); margin-top: .4rem; }
 .hotspots { position: relative; align-self: start; }
+.hotspots[hidden], .amenity3d[hidden] { display: none; }
+.amenity3d { position: relative; aspect-ratio: 2084 / 1574; overflow: hidden; background: #f3f1ed; border-radius: 8px; user-select: none; -webkit-user-select: none; }
+.a3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.amenity3d .t3d-status { color: var(--muted); }
+.a3d-top { position: absolute; top: 8px; right: 8px; z-index: 3; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: .3rem .75rem; font-size: .8rem; }
+.a3d-top[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.a3d-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.a3d-chip { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; align-items: center; gap: .3rem; max-width: 11rem; border: 0; padding: 0; background: none; text-align: left; }
+.a3d-chip[hidden] { display: none; }
+.a3d-chip b { flex: none; display: grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; border: 2px solid #fff; background: var(--accent); color: #fff; font-size: .7rem; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.a3d-chip span { font-size: .66rem; line-height: 1.15; color: #fff; background: rgba(20, 19, 17, .72); padding: .1rem .35rem; border-radius: 4px; }
+.a3d-chip.sel { z-index: 2; }
+.a3d-chip.flip { flex-direction: row-reverse; text-align: right; }
+.a3d-chip.sel b, .a3d-chip:hover b { background: var(--sel); color: #111; }
+.a3d-chip.sel span { background: #111; }
+.a3d-chip.short span, .amenity3d.narrow .a3d-chip:not(.sel) span { display: none; }
+.a3d-chip.short:hover { z-index: 3; }
+.a3d-chip.short:hover span, .amenity3d.narrow .a3d-chip:hover span { display: block; }
+.amenity3d.narrow .a3d-chip b { width: 1.25rem; height: 1.25rem; font-size: .62rem; }
 .hotspots img { border-radius: 8px; }
 .spot { position: absolute; transform: translate(-50%, -50%); width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid #fff;
   background: var(--accent); color: #fff; font-size: .8rem; font-weight: 700; padding: 0; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
@@ -165,6 +186,7 @@ th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--
   .tower-wrap, .tower3d { width: auto; max-width: 100%; height: min(calc(100svh - 150px), calc((100vw - 32px) * 1700 / 900)); min-height: 0; margin: 0 auto; }
   .floor-list { max-width: none; grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr)); }
   .amenity { grid-template-columns: 1fr; }
+  .amenity3d { aspect-ratio: 1; }
   .amenity-list { columns: 2; }
   .spot { width: 1.5rem; height: 1.5rem; font-size: .65rem; }
   .viewer { width: 100vw; height: 100dvh; max-width: none; max-height: none; border-radius: 0; }
