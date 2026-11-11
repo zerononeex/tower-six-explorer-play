@@ -76,113 +76,233 @@ export const AMENITY_FLOOR = {
     trees: [[365, 190, 60], [555, 180, 62], [150, 595, 62], [355, 580, 50], [555, 560, 58], [270, 735, 55], [360, 915, 52], [550, 915, 58]],
     sets: [[200, 735], [440, 740]], // bistro table + 4 chairs
   },
+};
 
-  /* Furniture traced from the plan, per space: [type, x, y, w, d, back?, colour?]
-     x, y = footprint centre; w × d = footprint along image x × y (px); back = side the backrest
-     faces (n|e|s|w, n = up in the image). Types are built in amenity3d.js. Space 1 is styled
-     from its marketing photo (assets/06-amenity-gym.jpg): oak floor, black equipment, red-wheel
-     spin bikes, a dark rubber zone, oak cabinet wall. */
-  items: {
-    1: [
-      ['rubber', 1180, 1338, 260, 100], ['rubber', 1610, 1160, 330, 230],
-      ...[1072, 1122, 1177, 1232, 1285].map(x => ['treadmill', x, 1333, 35, 85, 's']),
-      ...[1077, 1142, 1207, 1275].map(x => ['elliptical', x, 1190, 35, 90, 's']),
-      ['spin', 938, 1105, 22, 50], ['spin', 970, 1105, 22, 50], ['spin', 1010, 1105, 22, 50], ['spin', 945, 1255, 22, 50], ['spin', 990, 1255, 22, 50],
-      ['machine', 1375, 1173, 60, 35], ['machine', 1375, 1233, 60, 35], ['machine', 1290, 1052, 60, 30],
-      ['flatbench', 1370, 1305, 60, 15], ['flatbench', 1370, 1352, 60, 15],
-      ['dbrack', 1582, 1225, 35, 100], ['rack', 1570, 1330, 70, 75],
-      ['bench', 1677, 1075, 45, 20], ['bench', 1727, 1075, 45, 20], ['bench', 1677, 1125, 45, 20], ['bench', 1727, 1125, 45, 20],
-      ['platform', 1702, 1200, 75, 25], ['platform', 1702, 1236, 75, 25],
-      ['cabinetwall', 1500, 1044, 220, 14], ['plant', 1760, 1270, 18, 18],
+/* ======================= DETAIL PASS: items + palettes, per space =======================
+   items: every furniture / object footprint visible in the bird's-eye plan, re-traced space by
+   space at full resolution on a 25 px grid. { type, x, y, w, d, rot, c? }
+     x, y  footprint centre, in the plan's source pixels (same system as the room traces)
+     w, d  the item's own width × depth in px, before rotation (w = side to side, d = back to front)
+     rot   degrees clockwise in the image; 0 = the item's back toward the image top, 90 = back
+           toward the image right, 180 = bottom, 270 = left. Round / symmetric items use 0.
+     c     palette key (or a hex) for the item's main colour; otherwise the type's default key
+   An item exists only if the plan (position + footprint) or the space's photo shows it; where the
+   two disagree the plan governs position and the photo governs appearance. A few seats are hidden
+   under the plan's own number chips: those are listed only where the visible half of a symmetric
+   set implies them, and each is marked "under chip".
+
+   palette: colours sampled from the space's marketing photo (median of a hand-picked region) or,
+   for spaces SHAPE publishes no photo of, from the bird's-eye itself. `src` names the image.
+   Sampling regions live in docs/verification/detail/palette-regions.json. */
+const BIRD = 'assets/05-amenity-floor-birdseye.jpg';
+const I = (type, x, y, w, d, rot = 0, c, more) => ({ type, x, y, w, d, rot, ...(c ? { c } : {}), ...more });
+// seats around a centre, each with its back facing away from it (angles in image degrees, 0 = right)
+const ring = (type, cx, cy, r, angles, w, d, c) => angles.map(a => I(type, Math.round(cx + r * Math.cos(a * Math.PI / 180)), Math.round(cy + r * Math.sin(a * Math.PI / 180)), w, d, a + 90, c));
+
+const DETAIL = {
+  1: { // Fitness Facility
+    palette: { src: 'assets/06-amenity-gym.jpg', floor: '#a68b6f', wall: '#63605c', cabinet: '#9c8063', rubber: '#363231', frame: '#332f2d',
+      black: '#15130e', accent: '#a52222', disc: '#615655' },
+    items: [
+      ...[1071, 1124, 1178, 1231, 1284].map(x => I('treadmill', x, 1331, 36, 84, 180)),
+      ...[1077, 1144, 1210, 1277].map(x => I('recumbent', x, 1191, 37, 90, 0)),
+      ...[937, 972, 1010].map(x => I('spin', x, 1105, 22, 48, 180)), ...[948, 990].map(x => I('spin', x, 1254, 22, 50, 180)),
+      I('machine', 1290, 1052, 60, 33, 0), I('machine', 1377, 1175, 36, 60, 90), I('machine', 1377, 1233, 36, 60, 90),
+      I('flatbench', 1371, 1306, 56, 15, 0), I('flatbench', 1371, 1354, 56, 15, 0),
+      I('dbrack', 1579, 1225, 36, 100, 0), I('powerrack', 1571, 1330, 73, 84, 0),
+      I('weightbench', 1700, 1077, 95, 21, 0), I('weightbench', 1700, 1127, 95, 21, 0),
+      I('plyobox', 1702, 1200, 73, 26, 0), I('plyobox', 1702, 1237, 73, 26, 0),
+      I('cabinetwall', 1492, 1042, 240, 15, 0),
     ],
-    2: [
-      ...[738, 778, 821].map(x => ['mat', x, 1138, 25, 75]),
-      ...[720, 763, 803, 846].map(x => ['mat', x, 1234, 25, 75]),
-      ['mirror', 660, 1190, 8, 180], ['glasswall', 880, 1190, 4, 210],
+  },
+  2: { // Stretching / Yoga / Dance Studio
+    palette: { src: BIRD, floor: '#d9c1a6', mat: '#33302f' },
+    items: [
+      ...[738, 779, 819].map(x => I('mat', x, 1137, 25, 72)), ...[720, 762, 804, 845].map(x => I('mat', x, 1233, 25, 72)),
+      I('glasswall', 877, 1171, 178, 5, 90),
     ],
-    3: [
-      ...[731, 775, 818, 943, 988].map(x => ['mat', x, 1340, 27, 70, null, '#bfe0f0']),
-      ['ball', 1655, 1333, 50, 50], ['flatbench', 1710, 1370, 24, 70],
+  },
+  3: { // Outdoor Fitness Zones (three zones)
+    palette: { src: BIRD, rubber: '#353842', mat: '#b8d2eb', deck: '#5b3429', ball: '#dee4f1', black: '#232530' },
+    items: [
+      ...[732, 774, 817, 942, 986].map(x => I('mat', x, 1340, 26, 72, 0, 'mat')),
+      I('exball', 1654, 1333, 48, 48), I('mat', 1708, 1371, 27, 73, 0, 'black'), I('roller', 1742, 1374, 8, 30),
+      I('dumbbell', 1732, 1396, 10, 20), I('kettlebell', 1747, 1446, 14, 14),
     ],
-    4: [
-      ...[1032, 1092, 1167, 1227, 1302, 1364].map(y => ['lounger', 556, y, 88, 35, 'e']),
-      ['sidetable', 588, 1128, 24, 24], ['sidetable', 588, 1265, 24, 24],
-      ['bench', 435, 1055, 14, 120, null, '#4a4c50'], ['bench', 435, 1195, 14, 120, null, '#4a4c50'],
-      ['bistro', 390, 1370, 34, 34],
+  },
+  4: { // Quiet Chaise Lounge Area
+    palette: { src: BIRD, deck: '#eb9862', fabric: '#ffffff', frame: '#3b3e4b', table: '#676360' },
+    items: [
+      ...[1033, 1093, 1166, 1228, 1304, 1365].map(y => I('lounger', 556, y, 37, 87, 90)),
+      I('sidetable', 589, 1129, 25, 25), I('sidetable', 589, 1265, 25, 25),
+      I('bench', 435, 1054, 16, 122, 0, 'frame'), I('bench', 435, 1196, 16, 122, 0, 'frame'),
     ],
-    5: [
-      ...[1010, 1060, 1110, 1160, 1210, 1260, 1310].flatMap((y, i) => [
-        ['planterbed', 370, y, 34, 44, null, i % 2 ? '#c2402e' : '#5f8a3d'], ['planterbed', 410, y, 34, 44, null, i % 2 ? '#5f8a3d' : '#d9622b']]),
+  },
+  5: { // Gardening Area: one raised bed in three planted rows of alternating crops, + a bistro set
+    palette: { src: BIRD, red: '#7c3913', green: '#546034', pale: '#4e5929', table: '#666261', chair: '#4d4342', box: '#151b01' },
+    items: [
+      I('raisedbed', 387, 1162, 75, 330),
+      ...[[1018, 'red'], [1062, 'green'], [1118, 'red'], [1172, 'green'], [1222, 'red'], [1285, 'green']].map(([y, c], i) => I('crop', 362, y, 22, [37, 51, 59, 50, 50, 76][i], 0, c)),
+      ...[[1018, 'green'], [1062, 'red'], [1118, 'green'], [1172, 'red'], [1222, 'green'], [1285, 'red']].map(([y, c], i) => I('crop', 387, y, 22, [37, 51, 59, 50, 50, 76][i], 0, c)),
+      I('crop', 412, 1162, 22, 330, 0, 'pale'),
+      I('bistro', 383, 1355, 37, 37), ...[[365, 1335, 315], [412, 1338, 45], [365, 1380, 225], [412, 1378, 135]].map(([x, y, r]) => I('chair', x, y, 20, 20, r, 'chair')),
     ],
-    6: [
-      ['flag', 255, 968, 10, 10], ['flag', 222, 1225, 10, 10], ['flag', 253, 1362, 10, 10],
-      ['bocce', 245, 1005, 8, 8, null, '#b0453a'], ['bocce', 268, 1010, 8, 8, null, '#3b6fb0'], ['bocce', 280, 1000, 8, 8, null, '#b0453a'],
-      ['bocce', 232, 1335, 8, 8, null, '#3b6fb0'], ['bocce', 262, 1340, 8, 8, null, '#b0453a'],
+  },
+  6: { // Putting Green & Bocce
+    palette: { src: BIRD, turf: '#9bb549', lane: '#869f3c', red: '#dfaf6d', blue: '#b8c9bf', white: '#f9ffd1' },
+    items: [
+      I('boccelane', 250, 1172, 100, 435),
+      I('hole', 254, 968, 10, 10), I('hole', 222, 1223, 10, 10), I('hole', 253, 1363, 10, 10),
+      ...[[253, 991], [282, 992], [241, 1023], [243, 1084]].map(([x, y]) => I('bocceball', x, y, 6, 6, 0, 'red')),
+      ...[[279, 1314], [230, 1327], [278, 1345], [234, 1359]].map(([x, y]) => I('bocceball', x, y, 6, 6, 0, 'blue')),
+      I('golfball', 263, 1007, 4, 4), I('golfball', 254, 1269, 4, 4),
     ],
-    7: [
-      ['pergola', 238, 375, 195, 340],
-      ['sofa', 240, 232, 75, 30, 'n', '#efe9df'],
-      ...[[165, 280], [165, 330], [170, 465], [170, 515]].map(([x, y]) => ['armchair', x, y, 38, 36, 'w', '#efe9df']),
-      ...[[305, 280], [305, 330], [305, 465], [305, 515]].map(([x, y]) => ['armchair', x, y, 38, 36, 'e', '#efe9df']),
-      ['firepit', 235, 377, 60, 28], ['coffee', 240, 490, 40, 34],
+  },
+  7: { // Firepit & Outdoor Social — styled from the developer's outdoor amenity terrace render
+    palette: { src: 'assets/04-outdoor-amenity-terrace.jpg', deck: '#644f3c', sofa: '#dac7b7', cushion: '#ab9888', frame: '#221f1e',
+      slats: '#30201a', rope: '#5d564a', firepit: '#8b715e', stone: '#7d7870', hedge: '#2a2f1b' },
+    items: [
+      I('pergola', 237, 376, 196, 338),
+      I('sofa', 240, 242, 84, 43, 0),
+      ...[277, 332, 466, 521].flatMap(y => [I('ropechair', 170, y, 42, 41, 270), I('ropechair', 307, y, 42, 41, 90)]),
+      I('firepit', 234, 377, 57, 28), I('coffee', 237, 493, 45, 43, 0, 'firepit'),
     ],
-    8: [
-      ['bbq', 470, 222, 80, 30],
-      ['longtable', 548, 330, 130, 40], ...[505, 530, 555, 580].flatMap(x => [['chair', x, 302, 20, 18, 'n', '#3a3b3d'], ['chair', x, 358, 20, 18, 's', '#3a3b3d']]),
-      ['longtable', 553, 478, 140, 40], ...[505, 530, 555, 580, 600].flatMap(x => [['chair', x, 450, 20, 18, 'n', '#3a3b3d'], ['chair', x, 506, 20, 18, 's', '#3a3b3d']]),
+  },
+  8: { // BBQ & Outdoor Dining
+    palette: { src: BIRD, pavers: '#f6e8d9', table: '#71685f', chair: '#515150', steel: '#dde1eb' },
+    items: [
+      I('bbq', 476, 227, 82, 35, 0),
+      I('longtable', 546, 329, 132, 42), I('longtable', 546, 473, 133, 41),
+      ...[501, 531, 561, 591].flatMap(x => [I('chair', x, 300, 22, 20, 0), I('chair', x, 360, 22, 20, 180), // two of the lower four under chip
+        I('chair', x, 444, 22, 20, 0), I('chair', x, 503, 22, 20, 180)]),
     ],
-    9: [
-      ['rug', 818, 438, 115, 285, null, '#cfc8bd'],
-      ['pooltable', 813, 382, 60, 105], ['foosball', 815, 537, 70, 40],
-      ['banquette', 798, 232, 185, 25, 'n', '#9c5b34'],
-      ...[[710, 285], [710, 350], [718, 500], [730, 575]].map(([x, y]) => ['tub', x, y, 34, 34, null, '#d9cfc4']),
+  },
+  9: { // Games Lounge
+    palette: { src: BIRD, floor: '#eae3dd', rug: '#dccfc5', banquette: '#7b4936', chair: '#af948b', felt: '#677138', wood: '#f0d0b1',
+      white: '#d2cecb', plant: '#6c823b' },
+    items: [
+      I('rug', 817, 437, 120, 295, 0, null, { shape: 'pill' }),
+      I('banquette', 800, 236, 186, 37, 0, null, { low: true, seg: 2 }),
+      I('pooltable', 814, 384, 58, 102), I('foosball', 813, 535, 80, 45),
+      ...[[708, 288, 270], [708, 352, 270], [728, 498, 270], [730, 568, 270]].map(([x, y, r]) => I('tubchair', x, y, 32, 32, r)),
+      I('sidetable', 700, 322, 13, 13, 0, 'white'), I('sidetable', 717, 525, 13, 13, 0, 'white'),
+      I('plant', 697, 492, 18, 18), I('plant', 693, 583, 18, 18),
+      I('console', 692, 238, 58, 33, 270), I('console', 705, 463, 56, 23, 0),
     ],
-    10: [
-      ['bar', 911, 760, 26, 260], ...[655, 690, 725, 760, 795, 830].map(y => ['stool', 886, y, 14, 14]),
-      ['curvesofa', 815, 730, 70, 120, null, '#b5642c'], ['pouf', 772, 728, 40, 40, null, '#e6d6bf'],
-      ['rug', 755, 1000, 90, 75, null, '#cfc8bd'], ['coffee', 770, 1012, 44, 30, null, '#e6d3a8'],
-      ...[[730, 980], [760, 965], [800, 980], [725, 1015]].map(([x, y]) => ['tub', x, y, 24, 24, null, '#efe9df']),
-      ...[925, 985, 1045].flatMap(x => [['table', x, 1020, 32, 32], ['chair', x, 985, 22, 20, 'n', '#4a4542']]),
-      ['banquette', 965, 1052, 210, 28, 's', '#7a4128'], ['console', 775, 1064, 60, 8],
+  },
+  10: { // Bar & Social Lounge
+    palette: { src: BIRD, upholstery: 'leather', floor: '#f0eee7', marble: '#d6d3ce', sofa: '#934315', banquette: '#5f392c', wood: '#d4b296',
+      chair: '#90796d', rug: '#d1c4ba', side: '#f1dbc7', stool: '#a0693f', woodside: '#c39472', shell: '#ebe3dc', oval: '#d3b284',
+      leather: '#613c33', bench: '#dec9b3', plant: '#67792e' },
+    items: [
+      I('bar', 912, 763, 280, 33, 90),
+      ...[660, 700, 743, 785, 829, 871].map(y => I('stool', 888, y, 14, 15, 0, null, { seat: 'wood' })),
+      I('banquette', 990, 840, 120, 25, 0, 'leather'), I('banquette', 944, 878, 50, 28, 270, 'leather'),
+      I('rug', 799, 757, 88, 88, 0, 'rug'), I('curvesofa', 800, 763, 146, 24, 90), I('roundtable', 778, 764, 38, 38, 0, 'side', { kind: 'wood', h: 0.45 }),
+      I('sidetable', 814, 682, 19, 19, 0, 'woodside'), I('sidetable', 816, 850, 19, 19, 0, 'woodside'),
+      I('plant', 847, 688, 20, 20), I('plant', 847, 840, 20, 20),
+      I('rug', 769, 995, 88, 88, 0, 'rug'), I('pebble', 766, 1017, 58, 32, 0, 'oval', { taper: 0.2, n: 2.2 }),
+      ...[[755, 962, -11], [705, 987, -64], [815, 977, 51]].map(([x, y, r]) => I('shellchair', x, y, 30, 28, r)),
+      I('plant', 666, 1017, 16, 16), I('plant', 675, 1042, 22, 22), I('bench', 788, 1062, 75, 17, 0, 'bench'),
+      ...[922, 984, 1047].flatMap(x => [I('worktable', x, 1018, 39, 37), I('deskchair', x, 983, 26, 26, 0)]),
+      I('deskchair', 888, 1015, 26, 26, 270), I('deskchair', 1081, 1015, 26, 26, 90),
+      I('banquette', 988, 1051, 213, 32, 180),
     ],
-    11: [
-      ...[285, 350, 412].flatMap(y => [['desk', 966, y, 40, 30], ['chair', 995, y, 20, 20, 'e', '#3a3b3d'], ['partition', 925, y + 30, 40, 6]]),
-      ['tub', 1025, 235, 30, 30, null, '#d9cfc4'], ['tub', 1030, 270, 30, 30, null, '#d9cfc4'], ['plant', 1035, 382, 22, 22],
+  },
+  11: { // Co-Working Space
+    palette: { src: BIRD, floor: '#d9b585', wood: '#86523b', marble: '#efebe7', chair: '#a48b78', white: '#f9f1e7', lounge: '#ead4bf',
+      plant: '#778624' },
+    items: [
+      I('carrel', 921, 288, 70, 33, 270), I('carrel', 921, 362, 70, 33, 270), I('carrel', 921, 435, 64, 33, 270),
+      I('divider', 934, 325, 58, 6), I('divider', 934, 398, 58, 6),
+      ...[288, 365, 438].flatMap(y => [I('desk', 963, y, 40, 40, 270), I('deskchair', 995, y, 24, 26, 90)]), // middle chair mostly under chip
+      I('device', 971, 289, 4, 12), I('loungechair', 1028, 244, 33, 35, 315, 'lounge'), I('sidetable', 1036, 271, 12, 12, 0, 'white'),
+      I('plant', 952, 238, 15, 15), I('plant', 1065, 393, 25, 25), I('plant', 1088, 388, 15, 15),
     ],
-    12: [['pod', 1207, 460, 55, 58], ['pod', 1207, 523, 55, 58], ['curvewall', 1020, 482, 160, 10]],
-    13: [
-      ['table', 1218, 291, 125, 42, null, '#c9a57e'],
-      ...[1175, 1205, 1235, 1265].flatMap(x => [['chair', x, 254, 22, 20, 'n'], ['chair', x, 328, 22, 20, 's']]),
-      ['chair', 1145, 291, 20, 22, 'w'], ['chair', 1292, 291, 20, 22, 'e'], ['console', 1078, 290, 14, 80],
+  },
+  12: { // Private Study Pods
+    palette: { src: BIRD, floor: '#d9ba8a', rug: '#725d4c', desk: '#e9e1db', pod: '#f3f3f7', chair: '#7c614f' },
+    items: [
+      I('pod', 1207, 461, 63, 65, 0), I('pod', 1207, 531, 63, 58, 0),
+      { ...I('glasscurve', 1040, 515, 200, 90, 0), pts: [[938, 470], [1050, 470], [1090, 478], [1112, 492], [1128, 515], [1135, 560]] }, // glass front, plan's black frame line
     ],
-    14: [
-      ['table', 1520, 325, 110, 40, null, '#efece8'], ...[1485, 1510, 1535, 1560].flatMap(x => [['chair', x, 298, 20, 18, 'n', '#6b4a36'], ['chair', x, 352, 20, 18, 's', '#6b4a36']]),
-      ['chair', 1455, 325, 18, 20, 'w', '#6b4a36'], ['chair', 1590, 325, 18, 20, 'e', '#6b4a36'],
-      ['round', 1702, 325, 60, 60, null, '#efece8'], ...[0, 60, 120, 180, 240, 300].map(a => ['chair', 1702 + 42 * Math.cos(a * Math.PI / 180), 325 + 42 * Math.sin(a * Math.PI / 180), 18, 18, null, '#6b4a36']),
-      ['rug', 1515, 485, 150, 90, null, '#cbc3b6'], ['sofa', 1512, 425, 145, 40, 'n', '#d8d1c6'], ['coffee', 1510, 492, 55, 35, null, '#4a3a33'],
-      ['armchair', 1450, 487, 34, 34, 'w', '#ece7df'], ['armchair', 1580, 487, 34, 34, 'e', '#ece7df'],
-      ['counter', 1510, 540, 225, 20, 's'], ['counter', 1405, 320, 18, 140, 'w'],
+  },
+  13: { // Meeting Room
+    palette: { src: BIRD, rug: '#dbcdc1', table: '#f6d4b4', chair: '#caaf9a', marble: '#f7f3ee' },
+    items: [
+      I('rug', 1215, 305, 285, 114),
+      I('meetingtable', 1217, 290, 123, 46, 0, null, { taper: -0.32, n: 2.6, flat: 0.25 }), // boat-shaped: narrow rounded west end
+      ...[1176, 1206, 1236, 1266].flatMap(x => [I('meetingchair', x, 254, 22, 22, 0), I('meetingchair', x, 328, 22, 22, 180)]),
+      I('meetingchair', 1143, 292, 22, 22, 270),
+      I('credenza', 1084, 295, 94, 17, 270),
     ],
-    15: [
-      ['bed', 1825, 355, 72, 80, 'e'], ['nightstand', 1858, 300, 16, 16], ['nightstand', 1858, 410, 16, 16],
-      ['sofa', 1913, 345, 26, 72, 'e', '#ece7df'], ['armchair', 1890, 278, 30, 30, 'n', '#2f3133'],
-      ['vanity', 1850, 505, 70, 18, 'n'], ['wc', 1797, 573, 16, 22], ['tubbath', 1870, 573, 50, 26],
+  },
+  14: { // Large Private Lounge with Kitchen
+    // chair = the cognac leather of the seats, between their lit and shaded halves (an earlier sample sat in the seat shadow and read near-black); chairRim = the shell's lit outer edge; rug = its lit knit
+    palette: { src: BIRD, floor: '#e3c69e', marble: '#f4f1ed', chair: '#6e4830', chairRim: '#977453', legs: '#51301b', sofa: '#c9bdb1', rug: '#af9d91',
+      coffee: '#36281f', boucle: '#e0d4ca', stool: '#c9bfb8', counter: '#e6e2e0', plant: '#788620' },
+    items: [
+      I('marbletable', 1518, 333, 118, 50, 0, null, { n: 5 }),
+      ...[1482, 1512, 1542].flatMap(x => [I('diningchair', x, 300, 20, 20, 0), I('diningchair', x, 368, 20, 20, 180)]),
+      I('diningchair', 1449, 334, 20, 20, 270), I('diningchair', 1586, 333, 20, 20, 90),
+      I('roundtable', 1702, 341, 63, 63, 0, 'marble'), ...ring('diningchair', 1702, 341, 43, [-125, -72, -11, 49, 115, 175], 20, 20),
+      I('pier', 1628, 322, 33, 139, 0),
+      I('counter', 1402, 327, 140, 21, 270), I('stool', 1420, 319, 13, 13, 90, 'stool', { seat: 'square' }), I('stool', 1420, 357, 13, 13, 90, 'stool', { seat: 'square' }),
+      I('rug', 1512, 470, 151, 124),
+      I('cloudsofa', 1518, 431, 125, 52, 0, 'sofa', { pillow: 'boucle' }),
+      I('tubchair', 1447, 486, 30, 28, 270, 'boucle'), I('tubchair', 1582, 486, 30, 28, 90, 'boucle'), // backs to the room's sides, facing the coffee table
+      I('pebble', 1511, 496, 58, 33, 0, 'coffee', { taper: 0.3, n: 2.6, h: 0.36 }), // dark pebble: fuller west end
+      I('plant', 1415, 515, 25, 25), I('plant', 1440, 518, 15, 15),
+      I('counter', 1532, 543, 232, 22, 180),
     ],
-    16: [
-      ['banquette', 1695, 889, 80, 22, 'n', '#4f7a3c'], ['pouf', 1662, 912, 16, 16, null, '#e7e2d8'], ['pouf', 1718, 912, 16, 16, null, '#e7e2d8'],
-      ['stroller', 1662, 1005, 22, 34], ['stroller', 1688, 1005, 22, 34], ['console', 1715, 1018, 50, 10],
+  },
+  15: { // Furnished Guest Suite
+    palette: { src: BIRD, tile: '#b0a49c', rug: '#867a72', bed: '#7f726b', daybed: '#dad0c7', black: '#272322', bath: '#b1a59f', wood: '#c9bfb4', white: '#b8b3ad' },
+    items: [
+      I('rug', 1844, 374, 108, 228),
+      I('bed', 1825, 354, 82, 70, 270),
+      I('daybed', 1912, 355, 85, 23, 90),
+      I('loungechair', 1897, 286, 38, 38, 30, 'black'), I('sidetable', 1872, 274, 20, 20, 0, 'black'),
+      I('wardrobe', 1893, 447, 81, 13, 90), I('divider', 1820, 496, 60, 6), // the bedroom / bathroom partition, west of the door
+      I('wc', 1799, 573, 18, 27, 180), I('vanity', 1868, 577, 40, 21, 180), I('tilefloor', 1840, 545, 100, 90, 0, 'tile'), I('bathtub', 1907, 537, 35, 75),
     ],
-    17: [
-      ...[[1765, 885, '#7fb2e6'], [1790, 885, '#c77fd1'], [1800, 910, '#ec5fa8'], [1775, 905, '#8fd14f'], [1835, 945, '#8fd14f'], [1810, 962, '#7fb2e6'], [1900, 965, '#ec5fa8']]
-        .map(([x, y, c]) => ['beanbag', x, y, 26, 26, null, c]),
-      ['craft', 1920, 995, 80, 22], ['shelf', 1982, 1000, 40, 120],
-      ['kidtable', 1865, 1180, 50, 80, null, '#fbfaf8'],
-      ...[1150, 1175, 1200, 1225].flatMap((y, i) => [['pouf', 1832, y, 14, 14, null, ['#f4a6c8', '#a6d8f4', '#c8e6a0', '#f7e09a'][i]], ['pouf', 1898, y, 14, 14, null, ['#a6d8f4', '#c8e6a0', '#f4a6c8', '#a6d8f4'][i]]]),
-      ['banquette', 1972, 1190, 60, 190, 'e', '#3b4a63'],
+  },
+  16: { // Parents' Area
+    palette: { src: BIRD, floor: '#e5c9a3', bench: '#465f3b', bolster: '#3e4b5e', pouf: '#e9e2dc', black: '#181613' },
+    items: [
+      I('banquette', 1696, 890, 88, 26, 0, 'bench', { low: true, seg: 1 }), I('bolster', 1657, 892, 7, 16), I('bolster', 1722, 892, 7, 16),
+      I('pouf', 1662, 913, 13, 13, 0, 'pouf'), I('pouf', 1717, 913, 13, 13, 0, 'pouf'),
+      I('stroller', 1657, 1007, 25, 33, 180), I('stroller', 1686, 1007, 25, 33, 180),
+      I('mirror', 1741, 955, 55, 8, 90), I('rail', 1632, 978, 32, 10, -20), I('rail', 1722, 1019, 43, 8, 0),
     ],
-    18: [
-      ['kidtable', 1820, 1350, 44, 44, null, '#bfe3f2'], ...[[1790, 1335, '#f4a6c8'], [1850, 1335, '#c8e6a0'], [1820, 1380, '#fbfaf8']].map(([x, y, c]) => ['pouf', x, y, 16, 16, null, c]),
-      ['kidtable', 1892, 1408, 44, 44, null, '#bfe3f2'], ...[[1862, 1395, '#c8e6a0'], [1922, 1390, '#fbfaf8'], [1905, 1440, '#f4a6c8']].map(([x, y, c]) => ['pouf', x, y, 16, 16, null, c]),
+  },
+  17: { // Children's Indoor Play & Craft Room
+    palette: { src: BIRD, floor: '#bca18a', mat: '#25262b', banquette: '#485970', white: '#fbfaf8', wood: '#a28b84', shelf: '#ddd4cb',
+      pink: '#e288d6', green: '#99d459', blue: '#849ed6', paleblue: '#c4e2ef', palepink: '#f2d5ed', palegreen: '#e1e3af', plant: '#3e5a3a' },
+    items: [
+      I('playmat', 1795, 900, 76, 50), I('playmat', 1860, 951, 130, 52),
+      ...[[1793, 887, 30, 'blue'], [1768, 910, 24, 'green'], [1803, 910, 28, 'pink'], [1845, 950, 32, 'green'], [1807, 963, 30, 'paleblue'], [1905, 967, 32, 'pink']]
+        .map(([x, y, s, c]) => I('beanbag', x, y, s, s, 0, c)),
+      I('bookshelf', 1844, 906, 62, 22, 270), I('toybins', 1943, 960, 33, 40),
+      I('crafttable', 1922, 997, 75, 29),
+      I('bookshelf', 1986, 1003, 127, 48, 90, 'wood'), I('coatrack', 1944, 1041, 38, 22),
+      I('kidtable', 1866, 1184, 52, 85),
+      ...[[1852, 1132, 0, 'palepink'], [1875, 1132, 0, 'paleblue'], [1830, 1158, 270, 'palegreen'], [1830, 1182, 270, 'paleblue'], [1830, 1207, 270, 'palepink'],
+        [1902, 1155, 90, 'white'], [1902, 1182, 90, 'palegreen'], [1902, 1207, 90, 'paleblue'], [1852, 1237, 180, 'white'], [1875, 1237, 180, 'palegreen']]
+        .map(([x, y, r, c]) => I('kidchair', x, y, 20, 20, r, c)),
+      I('banquette', 1972, 1190, 196, 69, 90, 'banquette'), I('plant', 2003, 1102, 14, 22), I('plant', 2003, 1275, 14, 22),
+      I('sink', 1791, 1206, 12, 20),
+    ],
+  },
+  18: { // Children's Outdoor Play Area
+    palette: { src: BIRD, deck: '#79473b', table: '#d9f0fe', pink: '#ead5f4', green: '#d8e9c3', yellow: '#c7c39f', white: '#f9fdfe',
+      pier: '#edeef3' },
+    items: [
+      I('kidtable', 1818, 1346, 45, 45, 0, 'table'), I('kidtable', 1895, 1406, 42, 42, 0, 'table'),
+      ...[[1808, 1320, 'pink'], [1846, 1338, 'green'], [1787, 1359, 'yellow'], [1826, 1381, 'white'], [1880, 1379, 'pink'], [1869, 1422, 'yellow'], [1913, 1433, 'white']]
+        .map(([x, y, c]) => I('kidstool', x, y, 16, 16, 0, c)),
+      I('pier', 1953, 1329, 32, 46, 0, 'pier'),
     ],
   },
 };
+for (const [n, d] of Object.entries(DETAIL)) Object.assign(AMENITY_FLOOR.spaces[n], d);

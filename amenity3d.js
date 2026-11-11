@@ -1,134 +1,26 @@
 // Dollhouse 3D model of the whole Level 5 amenity floor: the Amenities section's second view.
-// Geometry comes from AMENITY_FLOOR (amenityFloor.js), traced from the published bird's-eye plan;
-// names / numbers / photos come from AMENITIES (data.js). Rooms are stylized low-poly, in the unit
-// viewer's style (viewer3d.js) — no photo is used as a texture.
+// Geometry, every furniture footprint and each space's sampled palette come from AMENITY_FLOOR
+// (amenityFloor.js), traced from the published bird's-eye plan; names / numbers / photos come from
+// AMENITIES (data.js). Items are shaped by the parametric kit (amenityKit.js) and surfaced with
+// procedural materials (amenityMaterials.js) — no photo is used as a texture.
+//
+// Draw calls: every item part, wall, core and landscape piece is merged into ONE mesh per surface
+// kind, coloured by vertex colours; a per-triangle space id keeps 3D picking exact. Only the space
+// floors (which tint on selection), the base slabs and the selected rim stay separate.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { BUILDERS, kit, WALL_H } from './amenityKit.js';
+import { KINDS, makeMaterials, floorMaterial } from './amenityMaterials.js';
 
-const WALL_H = 1.2, WALL_T = 0.15, CORE_H = 1.5, GUARD_H = 1.0;
-const FINISH = {
-  oak: '#cfa97a', maple: '#e0c9a0', stone: '#dcd6cd', carpet: '#b9b4ad', kids: '#e3cfa6',
-  rubber: '#3a3c40', deck: '#a0603a', soil: '#6b5844', turf: '#6fae4a', pavers: '#e6e0d6',
-};
-const C = { plate: '#e9e4db', interior: '#d3cec6', corridor: '#aaa59d', wall: '#fbfaf8', core: '#f4f2ee', black: '#1f1f21', dark: '#2c2d30',
-  hedge: '#557a3c', lavender: '#7d6aa8', trunk: '#6a5040', canopy: '#5d8a45', sel: '#ff9d2e' };
-
-const mats = {};
-const m = (color, extra) => (mats[color + (extra ? JSON.stringify(extra) : '')] ??= new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra }));
-const glass = () => m('#bcd6e4', { transparent: true, opacity: 0.3, roughness: 0.1, depthWrite: false });
-const shade = o => { o.castShadow = o.receiveShadow = !o.material.transparent; return o; };
-function box(w, h, d, color, x = 0, y = 0, z = 0) {
-  const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof color === 'string' ? m(color) : color);
-  o.position.set(x, y + h / 2, z);
-  return shade(o);
-}
-function cyl(r, h, color, x = 0, y = 0, z = 0, seg = 20) {
-  const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m(color));
-  o.position.set(x, y + h / 2, z);
-  return shade(o);
-}
-function ball(r, color, x = 0, y = 0, z = 0, sy = 1) {
-  const o = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), m(color));
-  o.position.set(x, y + r * sy, z);
-  o.scale.y = sy;
-  return shade(o);
-}
-// seating: seat height s, back height b, back at −z
-const seat = (w, d, c, s = 0.42, b = 0.82, arms = true) => [box(w, s, d, c), box(w, b - s, 0.18, c, 0, s, -d / 2 + 0.09),
-  ...(arms ? [box(0.16, 0.2, d, c, -w / 2 + 0.08, s), box(0.16, 0.2, d, c, w / 2 - 0.08, s)] : [])];
-const tableOn = (w, d, c, h = 0.74) => [box(w, 0.05, d, c, 0, h - 0.05), box(Math.min(w, d) * 0.25, h - 0.05, Math.min(w, d) * 0.25, C.dark)];
-
-/* Furniture in local metres: w along x, d along z, back at −z. c = optional colour. */
-const BUILD = {
-  rubber: (w, d) => [box(w, 0.015, d, '#2a2b2e')],
-  treadmill: (w, d) => [box(w, 0.22, d, C.black), box(w * 0.7, 0.02, d * 0.8, '#3b3c40', 0, 0.22, 0.05), box(0.06, 1.2, 0.06, C.black, -w / 2 + 0.05, 0, -d / 2 + 0.1),
-    box(0.06, 1.2, 0.06, C.black, w / 2 - 0.05, 0, -d / 2 + 0.1), box(w, 0.25, 0.22, '#111', 0, 1.15, -d / 2 + 0.12)],
-  elliptical: (w, d) => [box(w * 0.6, 0.25, d, C.black), box(0.12, 1.5, 0.12, '#55585d', 0, 0, -d / 2 + 0.15), box(w, 0.06, 0.4, '#55585d', 0, 0.35, 0.1)],
-  spin: (w, d) => {
-    const wheel = cyl(0.27, 0.07, '#c4262e', 0, 0, 0, 24); wheel.rotation.z = Math.PI / 2; wheel.position.set(0, 0.3, -d / 2 + 0.25);
-    const hub = cyl(0.2, 0.09, '#b8bcc0', 0, 0, 0, 20); hub.rotation.z = Math.PI / 2; hub.position.set(0, 0.3, -d / 2 + 0.25);
-    return [box(w, 0.06, d, C.black), box(0.07, 0.9, 0.07, C.black, 0, 0, 0.1), box(0.18, 0.06, 0.3, C.black, 0, 0.9, 0.15), box(0.07, 1.0, 0.07, C.black, 0, 0, -d / 2 + 0.45), box(0.4, 0.05, 0.08, C.black, 0, 1.0, -d / 2 + 0.45), wheel, hub];
-  },
-  machine: (w, d) => [box(w, 0.08, d, C.black), box(0.14, 1.9, 0.14, '#4a4c50', -w / 2 + 0.12, 0, 0), box(w * 0.5, 0.45, d * 0.6, '#2b2b2b', w * 0.15, 0, 0), box(0.25, 0.9, 0.2, '#6a6d72', -w / 2 + 0.3, 0.1, 0)],
-  flatbench: (w, d) => [box(w, 0.45, d, '#222')],
-  dbrack: (w, d) => [box(w, 0.75, d, '#2a2a2a'), ...[-0.3, 0, 0.3].map(z => box(w * 0.8, 0.12, d * 0.25, '#555', 0, 0.75, z * d))],
-  rack: (w, d) => {
-    const posts = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => box(0.08, 2.2, 0.08, '#1b1b1b', a * (w / 2 - 0.05), 0, b * (d / 2 - 0.05)));
-    const bar = cyl(0.02, w + 0.4, '#9aa0a6', 0, 0, 0); bar.rotation.z = Math.PI / 2; bar.position.y = 1.3;
-    const plates = [-1, 1].map(s => { const p = cyl(0.22, 0.06, '#111', 0, 0, 0); p.rotation.z = Math.PI / 2; p.position.set(s * (w / 2 + 0.12), 1.3, 0); return p; });
-    return [...posts, box(w, 0.08, d, '#1b1b1b', 0, 2.2), bar, ...plates];
-  },
-  bench: (w, d, c = '#222') => [box(w, 0.45, d, c)],
-  platform: (w, d) => [box(w, 0.05, d, '#1b1b1b'), box(0.12, 0.06, d, '#e07a2f', w / 2 - 0.06)],
-  cabinetwall: (w, d) => [box(w, WALL_H, d, '#c9a273')], // full-height oak wall in the photo; cut at wall height
-  plant: w => [cyl(w * 0.4, 0.4, '#3b3b3b'), ball(w * 0.6, '#4f7d3a', 0, 0.35, 0, 1.4)],
-  mat: (w, d, c = '#26272a') => [box(w, 0.012, d, c)],
-  mirror: (w, d) => [box(w, 1.15, d, '#e4ecf0')],
-  glasswall: (w, d) => [box(w, WALL_H, d, glass())],
-  ball: w => [ball(w * 0.45, '#e8d9c0')],
-  lounger: (w, d) => { const back = box(w, 0.08, 0.7, '#f4f1ea', 0, 0.38, -d / 2 + 0.3); back.rotation.x = 0.7; return [box(w, 0.32, d, '#f4f1ea'), back]; },
-  sidetable: w => [cyl(w / 2, 0.45, '#3d3f42')],
-  bistro: w => [...tableOn(w * 0.7, w * 0.7, '#4a4c50'), ...[0, 1, 2, 3].map(i => { const a = i * Math.PI / 2; return box(0.4, 0.45, 0.4, '#4a4c50', Math.cos(a) * w * 0.75, 0, Math.sin(a) * w * 0.75); })],
-  planterbed: (w, d, c) => [box(w, 0.35, d, '#7a6a58'), box(w * 0.86, 0.22, d * 0.86, c, 0, 0.35)],
-  flag: () => [cyl(0.09, 0.01, '#111'), cyl(0.012, 1.3, '#f2f2f2'), box(0.02, 0.18, 0.28, '#d33', 0, 1.1, 0.14)],
-  bocce: (w, d, c) => [ball(0.06, c)],
-  pergola: (w, d) => {
-    const o = [];
-    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [-1, 0], [1, 0]]) o.push(box(0.15, 2.6, 0.15, '#3a3633', a * (w / 2 - 0.1), 0, b * (d / 2 - 0.1)));
-    o.push(box(0.15, 0.2, d, '#3a3633', -w / 2 + 0.1, 2.6), box(0.15, 0.2, d, '#3a3633', w / 2 - 0.1, 2.6));
-    for (let z = -d / 2 + 0.2; z <= d / 2; z += 0.38) o.push(box(w, 0.12, 0.06, '#efeae2', 0, 2.8, z));
-    return o;
-  },
-  sofa: (w, d, c = '#d8d1c6') => seat(w, d, c),
-  armchair: (w, d, c = '#ece7df') => seat(w, d, c),
-  banquette: (w, d, c) => seat(w, d, c, 0.45, 0.9, false),
-  firepit: (w, d) => [box(w, 0.42, d, '#5a5550'), box(w * 0.7, 0.06, d * 0.35, m('#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: 1.2 }), 0, 0.42)],
-  coffee: (w, d, c = '#8a6a4c') => [box(w, 0.4, d, c)],
-  bbq: (w, d) => [box(w, 0.9, d, '#9aa0a6'), box(w * 0.9, 0.05, d * 0.8, '#2a2a2a', 0, 0.9)],
-  longtable: (w, d) => [box(w, 0.05, d, '#3a3b3d', 0, 0.7), box(0.08, 0.7, d * 0.8, '#3a3b3d', -w / 2 + 0.2), box(0.08, 0.7, d * 0.8, '#3a3b3d', w / 2 - 0.2)],
-  table: (w, d, c = '#a9835c') => tableOn(w, d, c),
-  round: (w, d, c = '#efece8') => [cyl(w / 2, 0.05, c, 0, 0.7), cyl(0.08, 0.7, C.dark)],
-  kidtable: (w, d, c) => Math.abs(w - d) < 0.05 ? [cyl(w / 2, 0.04, c, 0, 0.5), cyl(0.06, 0.5, '#fbfaf8')] : tableOn(w, d, c, 0.55),
-  chair: (w, d, c = '#e3ddd3') => seat(w, d, c, 0.45, 0.85, false),
-  rug: (w, d, c) => [box(w, 0.012, d, c)],
-  pooltable: (w, d) => [box(w, 0.72, d, '#6e4a2e'), box(w * 0.84, 0.04, d * 0.9, '#3f7d3a', 0, 0.72)],
-  foosball: (w, d) => {
-    const rods = [-0.3, -0.1, 0.1, 0.3].map(f => { const r = cyl(0.015, d * 1.25, '#c0c4c8', 0, 0, 0, 8); r.rotation.x = Math.PI / 2; r.position.set(f * w, 0.95, 0); return r; });
-    return [box(w, 0.85, d, '#c9b08a'), box(w * 0.9, 0.02, d * 0.85, '#3f7d3a', 0, 0.85), ...rods];
-  },
-  tub: (w, d, c) => [cyl(w / 2, 0.42, c), box(w, 0.32, 0.12, c, 0, 0.42, -d / 2 + 0.06)],
-  bar: (w, d) => [box(w, 1.05, d, '#ece9e4'), box(w + 0.08, 0.05, d + 0.08, '#f8f7f5', 0, 1.05)],
-  stool: (w, d, c = '#5a4a3a') => [cyl(0.03, 0.75, '#2b2b2b'), cyl(w / 2, 0.06, c, 0, 0.72)],
-  pouf: (w, d, c) => [cyl(w / 2, 0.32, c)],
-  curvesofa: (w, d, c) => { // C-shaped sofa opening west (−x)
-    const r = d / 2 - 0.35, o = [];
-    for (let a = -80; a <= 80; a += 20) {
-      const t = a * Math.PI / 180, g = new THREE.Group();
-      g.add(box(0.75, 0.42, 0.7 * r * 0.4 + 0.25, c), box(0.18, 0.4, 0.7 * r * 0.4 + 0.25, c, 0.3, 0.42));
-      g.position.set(Math.cos(t) * r - w / 2 + 0.4, 0, Math.sin(t) * r);
-      g.rotation.y = -t;
-      o.push(g);
-    }
-    return o;
-  },
-  console: (w, d) => [box(w, 0.8, d, '#ece8e2')],
-  desk: (w, d) => [box(w, 0.04, d, '#fbfaf8', 0, 0.72), box(w, 0.72, 0.04, '#fbfaf8', 0, 0, -d / 2 + 0.02)],
-  partition: (w, d) => [box(w, 1.25, d, '#8a5a3a')],
-  pod: (w, d) => [box(w, 1.6, 0.08, '#9a6740', 0, 0, -d / 2 + 0.04), box(0.08, 1.6, d, '#9a6740', -w / 2 + 0.04), box(0.08, 1.6, d, '#9a6740', w / 2 - 0.04),
-    box(w * 0.8, 0.04, 0.45, '#fbfaf8', 0, 0.72, -d / 2 + 0.3), ...seat(0.42, 0.42, '#3a3b3d', 0.45, 0.85, false).map(o => (o.position.z += 0.1, o))],
-  curvewall: (w, d) => [box(w, WALL_H, d, glass()), box(w, 0.05, d, '#1b1b1b', 0, WALL_H)],
-  counter: (w, d) => [box(w, 0.9, d, '#ece8e2'), box(w + 0.04, 0.04, d + 0.04, '#f7f5f2', 0, 0.9)],
-  nightstand: (w, d) => [box(w, 0.55, d, '#b48a5f')],
-  bed: (w, d) => [box(w, 0.5, d, '#fbfaf8'), box(w, 1.1, 0.12, '#55575b', 0, 0, -d / 2 + 0.06), box(w - 0.1, 0.06, d * 0.4, '#8b8d91', 0, 0.5, d * 0.25)],
-  vanity: (w, d) => [box(w, 0.85, d, '#efebe6')],
-  wc: (w, d) => [box(w, 0.42, d, '#fbfbfa')],
-  tubbath: (w, d) => [box(w, 0.55, d, '#fbfbfa'), box(w - 0.15, 0.01, d - 0.15, '#dfe8ec', 0, 0.55)],
-  stroller: (w, d) => [box(w, 0.25, d * 0.8, '#2a2a2a', 0, 0.25), box(w, 0.35, d * 0.4, '#3a3a3a', 0, 0.5, -d * 0.2), ...[-1, 1].flatMap(s => [-1, 1].map(t => cyl(0.08, 0.05, '#111', s * w * 0.4, 0, t * d * 0.35)))],
-  beanbag: (w, d, c) => [ball(w / 2, c, 0, 0, 0, 0.6)],
-  craft: (w, d) => [box(w, 0.6, d, '#fbfaf8'), ...['#f4a6c8', '#a6d8f4', '#c8e6a0', '#f7e09a', '#c77fd1'].map((c, i) => box(0.12, 0.08, 0.12, c, -w / 2 + 0.2 + i * (w - 0.3) / 4, 0.6))],
-  shelf: (w, d) => [box(w, 1.1, d, '#c9a273')],
-};
-const BACK_ANGLE = { n: 0, e: -Math.PI / 2, s: Math.PI, w: Math.PI / 2 };
+const ENV = { hemi: 1.1 };
+const WALL_T = 0.15, CORE_H = 1.5, GUARD_H = 1.0, IN_Y = 0.06, OUT_Y = 0.09;
+// floor finish → surface kind, and the palette key that colours it (fallback: FINISH)
+const FLOOR_KIND = { oak: 'woodfloor', maple: 'woodfloor', kids: 'woodfloor', stone: 'stone', carpet: 'carpet', rubber: 'rubber', deck: 'deck', soil: 'stone', turf: 'turf', pavers: 'pavers' };
+const FLOOR_KEY = { oak: 'floor', maple: 'floor', kids: 'floor', stone: 'floor', carpet: 'rug' };
+const FINISH = { oak: '#cfa97a', maple: '#e0c9a0', stone: '#dcd6cd', carpet: '#b9b4ad', kids: '#e3cfa6', rubber: '#3a3c40', deck: '#a0603a', soil: '#6b5844', turf: '#6fae4a', pavers: '#e6e0d6' };
+const C = { plate: '#e9e4db', interior: '#d3cec6', corridor: '#aaa59d', wall: '#fbfaf8', core: '#f4f2ee', hedge: '#557a3c', lavender: '#7d6aa8', trunk: '#6a5040', canopy: '#5d8a45', sel: '#ff9d2e', chair: '#4a4c50' };
 
 export function createAmenity3D(host, { F, spaces, onPick }) {
   const S = 1 / F.pxPerM;
@@ -145,13 +37,18 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // static scene
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 0.95;
   renderer.domElement.className = 'a3d-canvas';
   host.prepend(renderer.domElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#f3f1ed');
-  scene.add(new THREE.HemisphereLight('#ffffff', '#e8dccb', 2.2));
+  // a soft studio environment (generated once, in code) so steel, chrome, marble and leather pick up
+  // reflections instead of rendering flat or black; the hemisphere fill drops to match
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+  scene.add(new THREE.HemisphereLight('#ffffff', '#e8dccb', ENV.hemi));
   const sun = new THREE.DirectionalLight('#fff4e5', 2.4);
   sun.position.set(-18, 40, -22);
   sun.castShadow = true;
@@ -164,99 +61,170 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
   const root = new THREE.Group();
   scene.add(root);
   const pickables = [];
+  const MAT = makeMaterials(renderer);
   let sizes = {}; // per label chip (and its selected state): [full width, number width, height], measured once shown
 
-  // flat slab from a pixel polygon: top at y, thickness t
-  function slab(poly, color, y, t = 0.05) {
-    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(V2)), { depth: t, bevelEnabled: false }).rotateX(-Math.PI / 2).translate(0, y - t, 0);
-    const o = new THREE.Mesh(geo, typeof color === 'string' ? m(color) : color);
+  /* ---------- batching: kind → merged mesh, with a space id per triangle ---------- */
+  const batches = {};
+  const col = new THREE.Color();
+  function colorize(g, hex, topHex) {
+    const n = g.attributes.position.count, a = new Float32Array(n * 3), nrm = g.attributes.normal;
+    const c1 = col.set(hex).clone(), c2 = topHex ? new THREE.Color(topHex) : c1;
+    for (let i = 0; i < n; i++) (topHex && nrm.getY(i) > 0.5 ? c2 : c1).toArray(a, i * 3);
+    g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  }
+  // box-projected UVs in metres / tile, computed in the item's own frame so grain follows the item
+  function boxUV(g, tile) {
+    const p = g.attributes.position, n = g.attributes.normal;
+    const uv = g.attributes.uv ?? g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(p.count * 2), 2)).attributes.uv;
+    for (let i = 0; i < p.count; i++) {
+      const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+      const [u, v] = ay >= ax && ay >= az ? [p.getX(i), p.getZ(i)] : ax >= az ? [p.getZ(i), p.getY(i)] : [p.getX(i), p.getY(i)];
+      uv.setXY(i, u / tile, v / tile);
+    }
+  }
+  function emit(g, kind, color, space = 0, topColor) {
+    if (!g.attributes.uv) boxUV(g, KINDS[kind]?.tile ?? 1);
+    colorize(g, color, topColor);
+    (batches[kind] ??= []).push([g, space]);
+  }
+  const placeM = new THREE.Matrix4(), rotM = new THREE.Matrix4();
+  function place(it, space, P, y) {
+    const b = BUILDERS[it.type];
+    if (!b) { console.warn(`amenity3d: no builder for "${it.type}"`); return; }
+    const k = kit(P);
+    b(k, it.w * S, it.d * S, it);
+    placeM.makeTranslation(X(it.x), y, Z(it.y)).multiply(rotM.makeRotationY(-(it.rot ?? 0) * Math.PI / 180));
+    for (const p of k.parts) {
+      boxUV(p.geo, KINDS[p.kind]?.tile ?? 1);
+      p.geo.applyMatrix4(placeM);
+      emit(p.geo, p.kind, p.color, space);
+    }
+  }
+  const boxGeo = (w, h, d, x, y, z, ry = 0) => {
+    const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
+    boxUV(g, 1);
+    return g.rotateY(ry).translate(x, y + h / 2, z);
+  };
+  // a run of panels along a plan polyline: glass with a black frame top and bottom
+  function glassRun(pts, space) {
+    pts.forEach((a, i) => {
+      const b = pts[i + 1];
+      if (!b) return;
+      const ax = X(a[0]), az = Z(a[1]), bx = X(b[0]), bz = Z(b[1]), len = Math.hypot(bx - ax, bz - az), ry = -Math.atan2(bz - az, bx - ax);
+      emit(boxGeo(len, WALL_H, 0.04, (ax + bx) / 2, IN_Y, (az + bz) / 2, ry), 'glass', '#ffffff', space);
+      for (const y of [IN_Y, IN_Y + WALL_H - 0.05]) emit(boxGeo(len + 0.04, 0.05, 0.07, (ax + bx) / 2, y, (az + bz) / 2, ry), 'metal', '#1f1f21', space);
+    });
+  }
+
+  // flat slab from a pixel polygon: top at y, thickness t; UVs in metres / tile
+  function slabGeo(poly, y, t, tile = 1) {
+    const g = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(V2)), { depth: t, bevelEnabled: false }).rotateX(-Math.PI / 2).translate(0, y - t, 0);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / tile, uv.getY(i) / tile);
+    return g;
+  }
+  function slab(poly, mat, y, t = 0.05, tile) {
+    const o = new THREE.Mesh(slabGeo(poly, y, t, tile), mat);
     o.receiveShadow = true;
     root.add(o);
     return o;
   }
-  function wallsAround(poly, h, color, userData) {
+  function wallsAround(poly, h, color, kind, space) {
     poly.forEach((a, i) => {
       const b = poly[(i + 1) % poly.length];
       const ax = X(a[0]), az = Z(a[1]), bx = X(b[0]), bz = Z(b[1]);
-      const o = box(Math.hypot(bx - ax, bz - az) + WALL_T, h, WALL_T, color, (ax + bx) / 2, 0.06, (az + bz) / 2);
-      o.rotation.y = -Math.atan2(bz - az, bx - ax);
-      Object.assign(o.userData, userData);
-      root.add(o);
-      if (userData) pickables.push(o);
+      emit(boxGeo(Math.hypot(bx - ax, bz - az) + WALL_T, h, WALL_T, (ax + bx) / 2, IN_Y, (az + bz) / 2, -Math.atan2(bz - az, bx - ax)), kind, color, space);
     });
-  }
-  function place(parts, x, y, back, space) {
-    const g = new THREE.Group();
-    g.add(...parts);
-    g.position.set(X(x), 0.06, Z(y));
-    g.rotation.y = BACK_ANGLE[back] ?? 0;
-    if (space) { g.traverse(o => { o.userData.space = space; }); pickables.push(g); }
-    root.add(g);
-    return g;
-  }
-  function item([type, x, y, w, d, back, c], space) {
-    const [lw, ld] = back === 'e' || back === 'w' ? [d * S, w * S] : [w * S, d * S];
-    return place(BUILD[type](lw, ld, c ?? undefined), x, y, back, space);
   }
 
   /* ---------- plate, building, cores ---------- */
-  slab(F.plate, C.plate, 0, 0.35);
-  slab(F.building, C.interior, 0.02);
-  F.corridors.forEach(p => slab(p, C.corridor, 0.035));
+  slab(F.plate, floorMaterial(MAT, 'pavers', C.plate), 0, 0.35, KINDS.pavers.tile);
+  slab(F.building, floorMaterial(MAT, 'plain', C.interior), 0.02);
+  F.corridors.forEach(p => slab(p, floorMaterial(MAT, 'carpet', C.corridor), 0.035, 0.05, KINDS.carpet.tile));
   for (const c of F.cores) {
-    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(c.poly.map(V2)), { depth: CORE_H, bevelEnabled: false }).rotateX(-Math.PI / 2);
-    const o = new THREE.Mesh(geo, [m(c.top ?? C.core), m(C.core)]);
-    o.castShadow = o.receiveShadow = true;
-    root.add(o);
+    const g = new THREE.ExtrudeGeometry(new THREE.Shape(c.poly.map(V2)), { depth: CORE_H, bevelEnabled: false }).rotateX(-Math.PI / 2);
+    g.deleteAttribute('uv');
+    emit(g, 'plain', C.core, 0, c.top ?? C.core);
   }
   // terrace guard (glass) on the plate edge
   F.guard.forEach((a, i) => {
     const b = F.guard[i + 1];
     if (!b) return;
     const ax = X(a[0]), az = Z(a[1]), bx = X(b[0]), bz = Z(b[1]);
-    const o = box(Math.hypot(bx - ax, bz - az), GUARD_H, 0.05, glass(), (ax + bx) / 2, 0, (az + bz) / 2);
-    o.rotation.y = -Math.atan2(bz - az, bx - ax);
-    root.add(o);
+    emit(boxGeo(Math.hypot(bx - ax, bz - az), GUARD_H, 0.05, (ax + bx) / 2, 0, (az + bz) / 2, -Math.atan2(bz - az, bx - ax)), 'glass', '#ffffff');
   });
 
   /* ---------- unnumbered terrace landscape ---------- */
-  const T = F.terrace;
-  T.decks.forEach(p => slab(p, FINISH.deck, 0.08, 0.08));
-  T.hedges.forEach(([x0, y0, x1, y1]) => root.add(box((x1 - x0) * S, 0.7, (y1 - y0) * S, C.hedge, X((x0 + x1) / 2), 0, Z((y0 + y1) / 2))));
-  T.lavender.forEach(([x0, y0, x1, y1]) => root.add(box((x1 - x0) * S, 0.45, (y1 - y0) * S, C.lavender, X((x0 + x1) / 2), 0, Z((y0 + y1) / 2))));
-  T.sets.forEach(([x, y]) => place(BUILD.bistro(34 * S), x, y));
-  T.trees.forEach(([x, y, r]) => place([cyl(0.12, 1.6, C.trunk), ball(r * S * 0.85, C.canopy, 0, 1.3, 0, 0.8)], x, y));
+  const T = F.terrace, LAND = { hedge: C.hedge, lavender: C.lavender, chair: C.chair, table: C.chair, frame: C.chair };
+  T.decks.forEach(p => emit(slabGeo(p, 0.08, 0.08, KINDS.deck.tile), 'deck', FINISH.deck));
+  const lump = (x0, y0, x1, y1, h, c) => {
+    const k = kit(LAND);
+    k.rbox('foliage', c, (x1 - x0) * S, h, (y1 - y0) * S, 0.18, X((x0 + x1) / 2), 0.08, Z((y0 + y1) / 2));
+    k.parts.forEach(p => emit(p.geo, p.kind, p.color));
+  };
+  T.hedges.forEach(([x0, y0, x1, y1]) => lump(x0, y0, x1, y1, 0.7, 'hedge'));
+  T.lavender.forEach(([x0, y0, x1, y1]) => lump(x0, y0, x1, y1, 0.45, 'lavender'));
+  T.sets.forEach(([x, y]) => {
+    place({ type: 'bistro', x, y, w: 26, d: 26 }, 0, LAND, OUT_Y);
+    [0, 90, 180, 270].forEach(r => place({ type: 'chair', x: x + 26 * Math.sin(r * Math.PI / 180), y: y - 26 * Math.cos(r * Math.PI / 180), w: 20, d: 20, rot: r }, 0, LAND, OUT_Y));
+  });
+  T.trees.forEach(([x, y, r]) => { // existing style: trunk + one soft canopy
+    const k = kit(LAND);
+    k.cyl('wood', C.trunk, 0.12, 1.6, X(x), 0.08, Z(y), { seg: 8 });
+    k.ball('foliage', C.canopy, r * S * 0.85, X(x), 1.3, Z(y), { sy: 0.8, seg: 14, hseg: 10 });
+    k.parts.forEach(p => emit(p.geo, p.kind, p.color));
+  });
 
-  /* ---------- the 18 spaces ---------- */
+  /* ---------- the 18 spaces: floor, walls, items ---------- */
   const floorMeshes = {}, rims = {}, labelAt = {};
   const rimMat = new THREE.MeshBasicMaterial({ color: C.sel });
-  function rim(poly, y) {
-    const g = new THREE.Group();
-    poly.forEach((a, i) => {
+  function rim(polys, y) { // one merged mesh per space, hidden until selected
+    const gs = [];
+    polys.forEach(poly => poly.forEach((a, i) => {
       const b = poly[(i + 1) % poly.length];
       const ax = X(a[0]), az = Z(a[1]), bx = X(b[0]), bz = Z(b[1]);
-      const o = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(bx - ax, bz - az) + 0.3, 0.1, 0.3), rimMat);
-      o.position.set((ax + bx) / 2, y + 0.05, (az + bz) / 2);
-      o.rotation.y = -Math.atan2(bz - az, bx - ax);
-      g.add(o);
-    });
-    g.visible = false;
-    root.add(g);
-    return g;
+      gs.push(new THREE.BoxGeometry(Math.hypot(bx - ax, bz - az) + 0.3, 0.1, 0.3).rotateY(-Math.atan2(bz - az, bx - ax)).translate((ax + bx) / 2, y + 0.05, (az + bz) / 2));
+    }));
+    const o = new THREE.Mesh(mergeGeometries(gs), rimMat);
+    o.visible = false;
+    root.add(o);
+    return o;
   }
   for (const sp of spaces) {
-    const def = F.spaces[sp.n];
+    const def = F.spaces[sp.n], P = def.palette ?? {}, out = def.kind === 'outdoor', y = out ? OUT_Y : IN_Y;
     floorMeshes[sp.n] = def.polys.map((poly, k) => {
-      const finish = FINISH[def.finishes?.[k] ?? def.finish];
-      const mesh = slab(poly, new THREE.MeshStandardMaterial({ color: finish, roughness: 0.8 }), def.kind === 'outdoor' ? 0.09 : 0.06, 0.04);
+      const fin = def.finishes?.[k] ?? def.finish, kind = FLOOR_KIND[fin] ?? 'plain';
+      const mesh = slab(poly, floorMaterial(MAT, kind, P[FLOOR_KEY[fin] ?? fin] ?? FINISH[fin]), y, 0.04, KINDS[kind]?.tile);
       mesh.userData.space = sp.n;
       pickables.push(mesh);
-      if (def.kind === 'indoor') wallsAround(poly, WALL_H, C.wall, { space: sp.n });
-      (rims[sp.n] ??= []).push(rim(poly, def.kind === 'indoor' ? WALL_H + 0.06 : 0.12));
+      if (!out) wallsAround(poly, WALL_H, P.wall ?? C.wall, P.wall ? 'stone' : 'plain', sp.n);
       return mesh;
     });
+    rims[sp.n] = rim(def.polys, out ? 0.12 : WALL_H + 0.06);
     labelAt[sp.n] = def.labels ?? [[sp.x / 100 * F.w, sp.y / 100 * F.h]];
-    (F.items[sp.n] ?? []).forEach(it => item(it, sp.n));
+    for (const it of def.items ?? []) {
+      if (it.type === 'glasscurve') glassRun(it.pts, sp.n);
+      else place(it, sp.n, P, y);
+    }
+  }
+
+  /* ---------- merge the batches ---------- */
+  let tris = 0;
+  for (const [kind, list] of Object.entries(batches)) {
+    const geo = mergeGeometries(list.map(([g]) => g));
+    const faceSpace = new Uint8Array(geo.attributes.position.count / 3);
+    let at = 0;
+    for (const [g, s] of list) { const n = g.attributes.position.count / 3; faceSpace.fill(s, at, at + n); at += n; }
+    list.forEach(([g]) => g.dispose());
+    tris += faceSpace.length;
+    const mesh = new THREE.Mesh(geo, MAT[kind] ?? MAT.plain);
+    mesh.castShadow = !['glass', 'fire'].includes(kind);
+    mesh.receiveShadow = kind !== 'fire';
+    mesh.userData.faceSpace = faceSpace;
+    mesh.name = `batch:${kind}`;
+    root.add(mesh);
+    pickables.push(mesh);
   }
 
   /* ---------- labels: number chip (the plan's numbering) + name ---------- */
@@ -323,7 +291,11 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
     ptr.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     camera.updateMatrixWorld();
     ray.setFromCamera(ptr, camera);
-    return ray.intersectObjects(pickables, true).find(h => h.object.userData.space)?.object.userData.space;
+    for (const h of ray.intersectObjects(pickables, false)) {
+      const s = h.object.userData.space ?? h.object.userData.faceSpace?.[h.faceIndex];
+      if (s) return s; // unnumbered terrace / cores (0) let the ray through, as before
+    }
+    return 0;
   };
   const el = renderer.domElement, pointers = new Set();
   let gesture = null;
@@ -333,7 +305,7 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
   });
   el.addEventListener('pointermove', e => {
     if (gesture && pointers.has(e.pointerId) && Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 6) gesture.moved = true;
-    if (e.pointerType === 'mouse' && !pointers.size) el.style.cursor = hitAt(e.clientX, e.clientY) ? 'pointer' : 'grab';
+    if (e.pointerType === 'mouse' && !pointers.size) hover = [e.clientX, e.clientY]; // resolved once per frame
   });
   const up = e => {
     if (!pointers.delete(e.pointerId) || pointers.size) return;
@@ -350,9 +322,9 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
   let selected = 0;
   function select(i) {
     const n = i == null ? 0 : i + 1;
-    if (selected) { floorMeshes[selected].forEach(o => o.material.emissive.set(0)); rims[selected].forEach(g => { g.visible = false; }); }
+    if (selected) { floorMeshes[selected].forEach(o => o.material.emissive.set(0)); rims[selected].visible = false; }
     selected = n;
-    if (n) { floorMeshes[n].forEach(o => o.material.emissive.set(C.sel).multiplyScalar(0.35)); rims[n].forEach(g => { g.visible = true; }); }
+    if (n) { floorMeshes[n].forEach(o => o.material.emissive.set(C.sel).multiplyScalar(0.35)); rims[n].visible = true; }
     chips.forEach(c => c.el.classList.toggle('sel', +c.el.dataset.n === n));
   }
 
@@ -395,7 +367,11 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
     }
   }
   let wanted = false, onScreen = true, running = false;
-  const tick = () => { controls.update(); renderer.render(scene, camera); overlays(); };
+  let hover = null;
+  const tick = () => {
+    controls.update(); renderer.render(scene, camera); overlays();
+    if (hover) { el.style.cursor = hitAt(...hover) ? 'pointer' : 'grab'; hover = null; }
+  };
   const sync = () => {
     const go = wanted && onScreen;
     if (go === running) return;
@@ -411,6 +387,8 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
     start() { resize(); wanted = true; sync(); },
     stop() { wanted = false; sync(); },
     camera, controls,
+    // draw calls / triangles of one ordinary frame (the shadow map is drawn once, not per frame)
+    stats() { renderer.render(scene, camera); const r = renderer.info.render; return { calls: r.calls, triangles: r.triangles, mergedTriangles: tris, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures }; },
     // viewport point of a plan-image pixel on the floor (used by the verification script)
     pointAt(px, py) {
       const r = el.getBoundingClientRect();
