@@ -403,6 +403,12 @@ Object.assign(B, {
     c.parts.forEach(p => { p.geo.rotateY(Math.PI); p.geo.translate(0, 0, d * 0.12); k.parts.push(p); }); // facing the desk
   },
   glasscurve: () => {}, // built in plan space by amenity3d.js (needs the item's pts)
+  glassdoor: (k, w, d) => { // sliding glass door leaf, parked open just proud of the fixed glass: framed panel, header, pull bar
+    k.box('glass', 'glass', w - 0.06, WALL_H - 0.06, 0.02, 0, 0, d / 2);
+    for (const s of [-1, 1]) k.box('metal', 'black', 0.05, WALL_H, 0.06, s * (w / 2 - 0.025), 0, d / 2);
+    k.box('metal', 'black', w, 0.06, 0.08, 0, WALL_H - 0.06, d / 2);
+    k.rod('chrome', 'chrome', 0.012, [w / 2 - 0.15, 0.35, d / 2 + 0.05], [w / 2 - 0.15, 0.95, d / 2 + 0.05]);
+  },
   wardrobe: (k, w, d) => { k.box('wood', 'wood', w, WALL_H, d, 0, 0, 0); for (let x = -w / 2 + w / 3; x < w / 2 - 0.05; x += w / 3) k.box('paint', '#3a2e24', 0.008, WALL_H - 0.06, 0.01, x, 0.03, d / 2 + 0.003); },
   wc: (k, w, d) => { k.box('paint', 'white', w * 0.8, 0.4, d * 0.3, 0, 0.3, -d / 2 + d * 0.15); k.cyl('paint', 'white', w * 0.45, 0.4, 0, 0, d * 0.12, { seg: 16, sz: 1.3 }); },
   vanity: (k, w, d) => { k.box('wood', 'wood', w, 0.5, d, 0, 0.32, 0); k.box('marble', 'white', w, 0.05, d, 0, 0.82, 0); k.cyl('paint', 'white', d * 0.3, 0.02, 0, 0.87, 0, { seg: 16 }); },

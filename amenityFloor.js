@@ -39,8 +39,12 @@ export const AMENITY_FLOOR = {
     8: { kind: 'outdoor', finish: 'pavers', polys: [[[390, 198], [655, 198], [655, 600], [390, 600]]] },
     9: { kind: 'indoor', finish: 'stone', polys: [[[672, 200], [900, 200], [900, 600], [672, 600]]] },
     10: { kind: 'indoor', finish: 'stone', polys: [[[690, 600], [900, 600], [900, 560], [1088, 560], [1088, 1072], [652, 1072], [652, 905], [690, 905]]] },
-    11: { kind: 'indoor', finish: 'oak', polys: [[[900, 200], [1050, 200], [1050, 368], [1175, 368], [1175, 475], [900, 475]]] },
-    12: { kind: 'indoor', finish: 'oak', polys: [[[1100, 475], [1175, 475], [1175, 425], [1240, 425], [1240, 560], [1100, 560]]] },
+    // 11 and 12 are one open oak room on the plan: no wall between them, and their south / west side is
+    // the curved glass front (12's items), not a wall. `open` lists edges [x0, y0, x1, y1] that get no wall.
+    11: { kind: 'indoor', finish: 'oak', polys: [[[900, 200], [1050, 200], [1050, 368], [1240, 368], [1240, 425], [1175, 425], [1175, 475], [1095, 480], [938, 475], [900, 475]]],
+      open: [[1240, 425, 1175, 425], [1175, 425, 1175, 475], [1175, 475, 1095, 480], [1095, 480, 938, 475]] },
+    12: { kind: 'indoor', finish: 'oak', polys: [[[1095, 480], [1175, 475], [1175, 425], [1240, 425], [1240, 560], [1135, 560], [1128, 515], [1112, 492]]],
+      open: [[1095, 480, 1175, 475], [1175, 475, 1175, 425], [1175, 425, 1240, 425], [1135, 560, 1128, 515], [1128, 515, 1112, 492], [1112, 492, 1095, 480]] },
     13: { kind: 'indoor', finish: 'carpet', polys: [[[1050, 200], [1365, 200], [1365, 368], [1050, 368]]] },
     14: { kind: 'indoor', finish: 'oak', polys: [[[1395, 242], [1790, 242], [1790, 415], [1700, 415], [1700, 528], [1625, 528], [1625, 555], [1395, 555]]] },
     15: { kind: 'indoor', finish: 'carpet', polys: [[[1790, 252], [1940, 252], [1940, 490], [1900, 490], [1900, 588], [1790, 588]]] },
@@ -224,7 +228,11 @@ const DETAIL = {
     palette: { src: BIRD, floor: '#d9ba8a', rug: '#725d4c', desk: '#e9e1db', pod: '#f3f3f7', chair: '#7c614f' },
     items: [
       I('pod', 1207, 461, 63, 65, 0), I('pod', 1207, 531, 63, 58, 0),
-      { ...I('glasscurve', 1040, 515, 200, 90, 0), pts: [[938, 470], [1050, 470], [1090, 478], [1112, 492], [1128, 515], [1135, 560]] }, // glass front, plan's black frame line
+      // the see-through curved glass front of 11 + 12 (the plan's black frame line), with its doorway left OPEN at
+      // x 1027–1055 on the straight run: the sliding leaf (the darker framed panel) is drawn parked beside it
+      { ...I('glasscurve', 983, 476, 89, 10, 0), pts: [[938, 475], [1027, 476]] },
+      { ...I('glasscurve', 1095, 517, 80, 85, 0), pts: [[1055, 477], [1095, 480], [1112, 492], [1128, 515], [1135, 560]] },
+      I('glassdoor', 997, 478, 59, 8, 0),
     ],
   },
   13: { // Meeting Room

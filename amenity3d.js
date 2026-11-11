@@ -130,9 +130,12 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
     root.add(o);
     return o;
   }
-  function wallsAround(poly, h, color, kind, space) {
+  // walls on every edge of a space polygon except its `open` edges ([x0, y0, x1, y1], either direction)
+  const isOpen = (open, a, b) => open?.some(([x0, y0, x1, y1]) => (a[0] === x0 && a[1] === y0 && b[0] === x1 && b[1] === y1) || (a[0] === x1 && a[1] === y1 && b[0] === x0 && b[1] === y0));
+  function wallsAround(poly, h, color, kind, space, open) {
     poly.forEach((a, i) => {
       const b = poly[(i + 1) % poly.length];
+      if (isOpen(open, a, b)) return;
       const ax = X(a[0]), az = Z(a[1]), bx = X(b[0]), bz = Z(b[1]);
       emit(boxGeo(Math.hypot(bx - ax, bz - az) + WALL_T, h, WALL_T, (ax + bx) / 2, IN_Y, (az + bz) / 2, -Math.atan2(bz - az, bx - ax)), kind, color, space);
     });
@@ -198,7 +201,7 @@ export function createAmenity3D(host, { F, spaces, onPick }) {
       const mesh = slab(poly, floorMaterial(MAT, kind, P[FLOOR_KEY[fin] ?? fin] ?? FINISH[fin]), y, 0.04, KINDS[kind]?.tile);
       mesh.userData.space = sp.n;
       pickables.push(mesh);
-      if (!out) wallsAround(poly, WALL_H, P.wall ?? C.wall, P.wall ? 'stone' : 'plain', sp.n);
+      if (!out) wallsAround(poly, WALL_H, P.wall ?? C.wall, P.wall ? 'stone' : 'plain', sp.n, def.open);
       return mesh;
     });
     rims[sp.n] = rim(def.polys, out ? 0.12 : WALL_H + 0.06);
