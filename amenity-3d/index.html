@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tower Six — Amenity Floor 3D</title>
+<meta name="description" content="Full-window 3D model of the Tower Six Level 5 amenity floor, for embedding (e.g. PowerPoint Web Viewer).">
+<link rel="stylesheet" href="../styles.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+  /* Embed page: the model fills the window, nothing scrolls. Options in the URL:
+     ?spin  slow turntable until the first touch   ?top  open in top view   ?clean  hide the title and hint */
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; background: #f3f1ed; }
+  #amenity3d.amenity3d { position: fixed; inset: 0; aspect-ratio: auto; border-radius: 0; }
+  .t3d-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 1rem; text-align: center; }
+  .t3d-status[hidden] { display: none; }
+  .e-title { position: absolute; top: 10px; left: 12px; z-index: 3; pointer-events: none; padding: .35rem .7rem; border-radius: 8px;
+    background: rgba(255, 255, 255, .88); box-shadow: 0 1px 6px rgba(0, 0, 0, .12); line-height: 1.2; }
+  .e-title b { display: block; font-size: .95rem; }
+  .e-title span { font-size: .72rem; color: var(--muted); }
+  .a3d-top { top: 10px; right: 12px; }
+  .e-reset { position: absolute; top: 10px; right: 104px; z-index: 3; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: .3rem .75rem; font-size: .8rem; }
+  .e-card { position: absolute; left: 12px; bottom: 12px; z-index: 3; max-width: min(24rem, calc(100% - 24px)); padding: .6rem .8rem; border-radius: 10px;
+    background: rgba(255, 255, 255, .95); box-shadow: 0 2px 10px rgba(0, 0, 0, .18); font-size: .85rem; line-height: 1.35; }
+  .e-card h3 { font-size: 1rem; margin: 0 0 .2rem; }
+  .e-card p { margin: 0; color: var(--muted); }
+  .e-card img { margin-top: .5rem; border-radius: 6px; max-height: 26vh; object-fit: cover; width: 100%; }
+  .e-card .x { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 1.1rem; line-height: 1; color: var(--muted); cursor: pointer; }
+  .e-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2; pointer-events: none; white-space: nowrap;
+    font-size: .75rem; color: #fff; background: rgba(20, 19, 17, .7); padding: .3rem .7rem; border-radius: 999px; transition: opacity .6s; }
+  .e-card:not([hidden]) ~ .e-hint, .e-hint.gone { opacity: 0; }
+  .clean .e-title, .clean .e-hint { display: none; }
+  @media (max-width: 560px) { .e-title { display: none; } .e-reset { right: 96px; } }
+</style>
+</head>
+<body>
+<div id="amenity3d" class="amenity3d" role="group" aria-label="3D model of the Tower Six amenity floor with selectable spaces">
+  <p id="a3d-status" class="t3d-status">Loading 3D model…</p>
+  <div class="e-title"><b>Tower Six · Level 5 Amenities</b><span>18 spaces · stylized model for illustration only</span></div>
+  <button type="button" id="e-reset" class="e-reset">Reset</button>
+  <button type="button" id="a3d-top" class="a3d-top" aria-pressed="false">Top view</button>
+  <div id="e-card" class="e-card" aria-live="polite" hidden></div>
+  <p id="e-hint" class="e-hint">Drag to rotate · pinch or scroll to zoom · tap a space</p>
+</div>
+<script type="module">
+import { AMENITIES } from '../data.js';
+import { AMENITY_FLOOR } from '../amenityFloor.js';
+
+const $ = s => document.querySelector(s);
+const q = new URLSearchParams(location.search);
+const host = $('#amenity3d'), card = $('#e-card'), topBtn = $('#a3d-top');
+if (q.has('clean')) document.body.classList.add('clean');
+// AMENITIES image paths are relative to the site root; this page sits one folder down
+const img = p => p && (/^(https?:)?\//.test(p) ? p : '../' + p);
+
+let a3d;
+function pick(i) {
+  a3d?.select(i);
+  if (i == null) { card.hidden = true; return; }
+  const a = AMENITIES[i];
+  card.innerHTML = `<button type="button" class="x" aria-label="Close">×</button><h3>${a.n}. ${a.name}</h3><p>${a.line}</p>`
+    + (a.image ? `<img src="${img(a.image)}" alt="${a.name}">` : '');
+  card.hidden = false;
+}
+card.addEventListener('click', e => e.target.closest('.x') && pick(null));
+
+function setTop(top) {
+  topBtn.setAttribute('aria-pressed', top);
+  topBtn.textContent = top ? '3D view' : 'Top view';
+  a3d?.view(top);
+}
+topBtn.onclick = () => setTop(topBtn.getAttribute('aria-pressed') !== 'true');
+$('#e-reset').onclick = () => { pick(null); setTop(false); };
+
+try {
+  const { createAmenity3D } = await import('../amenity3d.js');
+  a3d = createAmenity3D(host, { F: AMENITY_FLOOR, spaces: AMENITIES, onPick: pick });
+} catch (err) {
+  $('#a3d-status').textContent = 'The 3D model could not load (Three.js comes from unpkg.com) — check the internet connection.';
+  throw err;
+}
+$('#a3d-status').hidden = true;
+a3d.start();
+if (q.has('top')) setTimeout(() => setTop(true), 300); // after the first framing
+
+// optional slow turntable for a hands-off slide; any touch stops it for good
+const stopSpin = () => { a3d.controls.autoRotate = false; $('#e-hint').classList.add('gone'); };
+if (q.has('spin')) Object.assign(a3d.controls, { autoRotate: true, autoRotateSpeed: 0.6 });
+host.addEventListener('pointerdown', stopSpin, { once: true });
+host.addEventListener('wheel', stopSpin, { once: true, passive: true });
+</script>
+</body>
+</html>
